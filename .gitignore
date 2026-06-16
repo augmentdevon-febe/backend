@@ -1,0 +1,45 @@
+# Gradle build and wrapper caches
+.gradle/
+build/
+
+# Local Gradle distributions downloaded by the wrapper
+gradle-*/
+*.zip
+
+# Java class files and archives
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE and editor files
+.idea/
+.vscode/
+*.code-workspace
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and local configuration
+.env
+!.env.example
+
+# Local database and application storage
+data/
+*.db
+*.mv.db
+*.trace.db
+
+# Test and report outputs
+build/reports/
+build/test-results/
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+*~
