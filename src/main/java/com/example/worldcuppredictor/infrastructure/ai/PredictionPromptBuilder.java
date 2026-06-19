@@ -28,7 +28,7 @@ public class PredictionPromptBuilder {
         TeamStats a = stats.get(away.toLowerCase());
 
         StringBuilder sb = new StringBuilder();
-        sb.append("You are an expert in FIFA tournaments and statistics and probabilistic football analyst. Return a STRICT JSON with fields: predictedHomeGoals (int), predictedAwayGoals (int), result (HOME_WIN|AWAY_WIN|DRAW), confidenceScore (0-1 float), explanation (string), factors (object with numeric weights summing to 1).\n");
+        sb.append("You are an expert in FIFA tournaments and statistics and probabilistic football analyst. Return a STRICT JSON with fields: predictedHomeGoals (int), predictedAwayGoals (int), result (HOME_WIN|AWAY_WIN|DRAW), explanation (string).\n");
         sb.append("Match info:\n");
         sb.append("home: ").append(home).append("\n");
         sb.append("away: ").append(away).append("\n");

@@ -7,20 +7,11 @@ import com.example.worldcuppredictor.domain.entity.User;
 import com.example.worldcuppredictor.domain.repository.PredictionRepository;
 import com.example.worldcuppredictor.domain.repository.TeamStatsRepository;
 import com.example.worldcuppredictor.infrastructure.ai.AiPredictionClient;
-import com.example.worldcuppredictor.api.dto.response.ExternalAiRawResponse;
-import com.example.worldcuppredictor.infrastructure.ai.PredictionResponseParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
-import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
