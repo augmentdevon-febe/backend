@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
 
+/**
+ * Statistical profile for a single national team, used as context when building the AI prediction prompt.
+ *
+ * <p>Records are seeded on startup by {@code DataSeeder} from the FIFA 2026 World Cup pool
+ * and upserted on every restart so that stats stay current. All numeric scores are normalised
+ * to the range [0, 1] unless noted otherwise.
+ */
 @Entity
 @Table(name = "team_stats")
 public class TeamStats {
@@ -11,27 +18,50 @@ public class TeamStats {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Full English team name used in API requests and AI prompts (e.g. "South Korea"). */
     @Column(nullable = false, unique = true)
     private String teamName;
 
+    /** Three-letter FIFA country code (e.g. "KOR"). */
     @Column(nullable = false, unique = true)
     private String fifaCode;
 
+    /** FIFA confederation (UEFA, CONMEBOL, CONCACAF, CAF, AFC, OFC). */
     @Column(nullable = false)
     private String confederation;
 
+    /** Current FIFA world ranking position (lower is better). */
     @Column(nullable = false)
     private Integer fifaRanking;
+
+    /** FIFA ranking points total. */
     private Double fifaPoints;
+
+    /** Normalised score [0, 1] reflecting historical World Cup results. */
     private Double worldCupPerformanceScore;
+
+    /** Average goals scored per match over recent competitive fixtures. */
     private Double avgGoalsFor;
+
+    /** Average goals conceded per match over recent competitive fixtures. */
     private Double avgGoalsAgainst;
+
+    /** Normalised score [0, 1] reflecting recent match form. */
     private Double recentFormScore;
+
+    /** Normalised attacking ability score [0, 1]. */
     private Double attackScore;
+
+    /** Normalised defensive ability score [0, 1]. */
     private Double defenseScore;
+
+    /** Normalised overall squad quality score [0, 1]. */
     private Double squadStrengthScore;
 
+    /** Timestamp when this record was first inserted. */
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    /** Timestamp of the most recent upsert by {@code DataSeeder}. */
     private OffsetDateTime updatedAt = OffsetDateTime.now();
 
     public TeamStats() {

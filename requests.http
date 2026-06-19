@@ -1,49 +1,43 @@
 ### REST Client examples for World Cup Predictor API
 
 @baseUrl = http://localhost:8080
+@sessionCookie = JSESSIONID=CA6118AD4B7EC377C4A87BD0BD6921F2
 
 ### 1) Health check
 GET {{baseUrl}}/api/health
 Accept: application/json
 
-### 2) List all seeded teams
-GET {{baseUrl}}/api/teams
+### 2) Start OAuth2 login and capture session cookie
+# copy and past into a browser to complete the login flow 
+# and capture the JSESSIONID cookie value for subsequent requests.
+# This request redirects to Google OAuth2 and creates a JSESSIONID cookie for the local app.
+# In the REST client, inspect the response headers for Set-Cookie and copy the JSESSIONID value.
+GET {{baseUrl}}/api/auth/login
 Accept: application/json
 
-### 3) Get one team by name
-GET {{baseUrl}}/api/teams/France
+### 3) Verify the authenticated session
+# Paste the JSESSIONID cookie value from the /api/auth/login response into the @sessionCookie variable above.
+GET {{baseUrl}}/api/auth/session
 Accept: application/json
+Cookie: {{sessionCookie}}
 
 ### 4) Get current authenticated user
-# Requires a valid logged-in browser session (Google OAuth2).
-# After logging in, copy the JSESSIONID cookie value from the browser and paste it here.
+# Requires a valid session cookie.
 GET {{baseUrl}}/api/auth/me
 Accept: application/json
-Cookie: JSESSIONID=your-session-cookie-here
+Cookie: {{sessionCookie}}
 
-### 5) List predictions for the authenticated user
-# Requires a logged-in browser session.
-GET {{baseUrl}}/api/predictions?page=0&size=10
-Accept: application/json
-Cookie: JSESSIONID=your-session-cookie-here
-
-### 6) Get one prediction by id
-# Replace 1 with an actual prediction id from the list response.
-GET {{baseUrl}}/api/predictions/1
-Accept: application/json
-Cookie: JSESSIONID=your-session-cookie-here
-
-### 7) Create a new prediction
+### 5) Create a new prediction
 # Requires a logged-in browser session.
 POST {{baseUrl}}/api/predictions
 Content-Type: application/json
 Accept: application/json
-Cookie: JSESSIONID=your-session-cookie-here
+Cookie: {{sessionCookie}}
 
 {
-  "homeTeam": "France",
-  "awayTeam": "Brazil",
+  "homeTeam": "Uzbekistan",
+  "awayTeam": "Colombia",
   "matchStage": "Group Stage",
-  "venue": "MetLife Stadium",
-  "matchDate": "2026-06-16T18:00:00Z"
+  "venue": "",
+  "matchDate": ""
 }

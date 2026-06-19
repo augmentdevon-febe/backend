@@ -1,0 +1,4 @@
+# Register a Spring Boot EnvironmentPostProcessor implementation.
+# The trailing backslash continues the property value onto the next line.
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.example.worldcuppredictor.infrastructure.bootstrap.DotenvEnvironmentPostProcessor

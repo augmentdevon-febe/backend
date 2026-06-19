@@ -61,7 +61,7 @@ public class PredictionServiceValidationTest {
 
     private com.example.worldcuppredictor.api.dto.response.ExternalAiRawResponse createMockResponse() {
         com.example.worldcuppredictor.api.dto.response.ExternalAiRawResponse response = new com.example.worldcuppredictor.api.dto.response.ExternalAiRawResponse();
-        response.setProvider("m365-copilot");
+        response.setProvider("openai");
         response.setModel("test-model");
         response.setRawText("{\"predictedHomeGoals\":2,\"predictedAwayGoals\":1,\"result\":\"HOME_WIN\",\"confidenceScore\":0.85,\"explanation\":\"test\",\"factors\":{\"ranking\":0.3}}"
         );
@@ -130,7 +130,7 @@ public class PredictionServiceValidationTest {
         assertEquals(1, dto.getPredictedAwayGoals());
         assertEquals(ResultType.HOME_WIN, dto.getResult());
         assertEquals("test", dto.getExplanation());
-        assertEquals("m365-copilot", dto.getProviderName());
+        assertEquals("openai", dto.getProviderName());
     }
 
     @Test
@@ -152,7 +152,7 @@ public class PredictionServiceValidationTest {
         prediction.setPredictedAwayGoals(1);
         prediction.setResult(ResultType.HOME_WIN);
         prediction.setConfidenceScore(0.85);
-        prediction.setProviderName("m365-copilot");
+        prediction.setProviderName("openai");
         prediction.setProviderModel("test-model");
         prediction.setRawProviderResponseJson("{}");
 

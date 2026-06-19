@@ -14,15 +14,37 @@ import com.example.worldcuppredictor.infrastructure.ai.PredictionResponseParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Core application service responsible for the end-to-end prediction workflow.
+ *
+ * <ol>
+ *   <li>Validates the incoming {@link PredictionRequest} (non-blank teams, different teams,
+ *       both teams known, optional ISO-8601 match date).</li>
+ *   <li>Loads all {@link TeamStats} from the database and builds a structured prompt via
+ *       {@link PredictionPromptBuilder}.</li>
+ *   <li>Calls the configured {@link AiPredictionClient} (OpenAI by default) with the prompt.</li>
+ *   <li>Parses the raw AI response via {@link PredictionResponseParser} into a {@link PredictionDto}.</li>
+ *   <li>Persists the result as a {@link Prediction} entity linked to the requesting user.</li>
+ * </ol>
+ */
 @Service
 public class PredictionService {
+    /**
+     * Guard-length used when the database {@code explanation} column has not yet been
+     * migrated from VARCHAR(255) to TEXT. Explanations exceeding this length are silently
+     * truncated with a WARN log to prevent SQL 22001 insert failures on legacy schemas.
+     */
+    private static final int LEGACY_EXPLANATION_MAX_LENGTH = 255;
+
     private final PredictionRepository predictionRepository;
     private final TeamStatsRepository teamStatsRepository;
     private final AiPredictionClient aiClient;
@@ -34,6 +56,14 @@ public class PredictionService {
         this.aiClient = aiClient;
     }
 
+    /**
+     * Validates the request, calls the AI provider, persists the result, and returns a DTO.
+     *
+     * @param user the authenticated user making the request
+     * @param req  validated prediction request containing team names and optional match context
+     * @return a populated {@link PredictionDto} with the AI prediction and provider metadata
+     * @throws IllegalArgumentException if validation fails (unknown team, same teams, bad date)
+     */
     public PredictionDto createPrediction(User user, PredictionRequest req) throws Exception {
         if (req.getHomeTeam() == null || req.getHomeTeam().isBlank()) {
             throw new IllegalArgumentException("homeTeam is required");
@@ -87,7 +117,7 @@ public class PredictionService {
         p.setResult(dto.getResult());
         p.setConfidenceScore(dto.getConfidence());
         p.setModelVersion(dto.getModelVersion());
-        p.setExplanation(dto.getExplanation());
+        p.setExplanation(trimExplanationForLegacySchema(dto.getExplanation()));
         p.setProviderName(dto.getProviderName());
         p.setProviderModel(dto.getProviderModel());
         p.setRawProviderResponseJson(dto.getRawProviderResponse());
@@ -99,12 +129,43 @@ public class PredictionService {
         return dto;
     }
 
+    /**
+     * Returns a page of predictions belonging to {@code user}, ordered by
+     * match date ascending (nulls last), then by requested-at descending.
+     */
     public Page<Prediction> listForUser(User user, Pageable pageable) {
-        return predictionRepository.findByUserOrderByRequestedAtDesc(user, pageable);
+        Pageable sortedPageable = PageRequest.of(
+            pageable.getPageNumber(),
+            pageable.getPageSize(),
+            Sort.by(
+                Sort.Order.asc("matchDate").nullsLast(),
+                Sort.Order.desc("requestedAt")
+            )
+        );
+        return predictionRepository.findByUser(user, sortedPageable);
     }
 
+    /**
+     * Returns the prediction with the given {@code id} only when it belongs to {@code user}.
+     * Returns empty when the prediction does not exist or is owned by a different user.
+     */
     public java.util.Optional<Prediction> findByIdForUser(Long id, User user) {
         return predictionRepository.findByIdAndUser(id, user);
+    }
+
+    /**
+     * Truncates the explanation to {@link #LEGACY_EXPLANATION_MAX_LENGTH} characters when
+     * necessary so that inserts succeed on databases where the column is still VARCHAR(255).
+     */
+    private String trimExplanationForLegacySchema(String explanation) {
+        if (explanation == null) {
+            return null;
+        }
+        if (explanation.length() <= LEGACY_EXPLANATION_MAX_LENGTH) {
+            return explanation;
+        }
+        log.warn("Trimming explanation from {} to {} chars for DB compatibility", explanation.length(), LEGACY_EXPLANATION_MAX_LENGTH);
+        return explanation.substring(0, LEGACY_EXPLANATION_MAX_LENGTH);
     }
 
 }

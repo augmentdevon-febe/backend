@@ -14,6 +14,22 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+/**
+ * Custom OIDC user service that upserts the local {@link User} record on every Google login.
+ *
+ * <p>Spring Security calls {@link #loadUser} after a successful Google OAuth2 callback.
+ * This implementation:
+ * <ol>
+ *   <li>Delegates to the standard {@link OidcUserService} to validate the OIDC token and
+ *       retrieve the {@code UserInfo} endpoint claims.</li>
+ *   <li>Looks up the user by Google subject ({@code sub} claim) or email. If found, the
+ *       profile fields and {@code lastLoginAt} timestamp are updated.</li>
+ *   <li>If no existing record matches, a new {@link User} is created with the {@code USER}
+ *       role and persisted to the database.</li>
+ *   <li>Returns the original {@link OidcUser} so Spring Security continues with standard
+ *       authority and session handling.</li>
+ * </ol>
+ */
 @Service
 public class CustomOidcUserService extends OidcUserService {
     private final UserRepository userRepository;
@@ -31,9 +47,19 @@ public class CustomOidcUserService extends OidcUserService {
         String subject = oidcUser.getSubject();
         String email = oidcUser.getEmail();
         String name = oidcUser.getFullName();
-        String picture = (String) oidcUser.getAttributes().get("picture");
+        String picture = oidcUser.getAttributes().get("picture") instanceof String ? (String) oidcUser.getAttributes().get("picture") : null;
 
-        userRepository.findByGoogleSubject(subject).or(() -> userRepository.findByEmail(email))
+        if (subject == null || subject.isBlank()) {
+            log.error("OIDC login failed because the user subject is missing");
+            throw new IllegalArgumentException("OIDC user subject is required");
+        }
+        if (email == null || email.isBlank()) {
+            log.error("OIDC login failed because the user email is missing for subject {}", subject);
+            throw new IllegalArgumentException("OIDC user email is required");
+        }
+
+        userRepository.findByGoogleSubject(subject)
+                .or(() -> userRepository.findByEmail(email))
                 .map(u -> {
                     u.setFullName(name);
                     u.setPictureUrl(picture);

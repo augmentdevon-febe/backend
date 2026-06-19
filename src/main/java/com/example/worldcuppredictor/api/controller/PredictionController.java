@@ -15,6 +15,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * REST endpoints for creating, listing, and retrieving match predictions for the authenticated user.
+ *
+ * All endpoints require a valid OIDC-authenticated session.
+ */
 @RestController
 @RequestMapping("/api/predictions")
 public class PredictionController {
@@ -26,6 +31,11 @@ public class PredictionController {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Creates a new prediction for the current user.
+     *
+     * Returns 401 when the request is unauthenticated and 200 with the saved prediction when successful.
+     */
     @PostMapping
     public ResponseEntity<PredictionDto> create(@AuthenticationPrincipal OidcUser principal,
                                                 @Valid @RequestBody PredictionRequest req) throws Exception {
@@ -40,6 +50,11 @@ public class PredictionController {
         return ResponseEntity.ok(dto);
     }
 
+    /**
+     * Lists predictions belonging to the current user.
+     *
+        * Results are paginated and ordered by match date/time ascending, then requested-at descending.
+     */
     @GetMapping
     public Page<Prediction> list(@AuthenticationPrincipal OidcUser principal,
                                  @RequestParam(defaultValue = "0") int page,
@@ -53,6 +68,11 @@ public class PredictionController {
         return predictionService.listForUser(user, p);
     }
 
+    /**
+     * Returns a single prediction by id when it belongs to the current user.
+     *
+     * Returns 401 when unauthenticated and 404 when the prediction is missing or owned by someone else.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Prediction> get(@AuthenticationPrincipal OidcUser principal, @PathVariable Long id) {
         if (principal == null) {

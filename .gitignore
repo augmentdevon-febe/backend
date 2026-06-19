@@ -27,12 +27,19 @@ Thumbs.db
 # Environment and local configuration
 .env
 !.env.example
+client_secret_738179361904-kkdr81iu4uqebolp09e4s76qjog9eomu.apps.googleusercontent.com.json
+cookiejar.txt
+payload.json
+requests.http
 
 # Local database and application storage
 data/
 *.db
 *.mv.db
 *.trace.db
+
+# IDE-generated compiled output
+bin/
 
 # Test and report outputs
 build/reports/
