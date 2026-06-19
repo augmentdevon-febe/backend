@@ -74,3 +74,6 @@ To run locally with the REST client:
 3. Use that cookie in `Cookie: JSESSIONID=...` for `/api/auth/session`, `/api/auth/me`, and prediction requests.
 
 Database seeding: TeamStats seeded on first run if empty (sample teams included).
+
+// If error pushing code chages to github then do the next:
+git credential-manager github login
