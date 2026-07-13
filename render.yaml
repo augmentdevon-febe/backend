@@ -1,0 +1,35 @@
+databases:
+  - name: worldcup-predictor-db
+    plan: starter
+
+services:
+  - type: web
+    name: worldcup-predictor
+    env: java
+    plan: starter
+    buildCommand: ./gradlew clean bootJar
+    startCommand: java -jar build/libs/*.jar
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_HOST
+        fromDatabase:
+          name: worldcup-predictor-db
+          property: host
+      - key: DATABASE_PORT
+        fromDatabase:
+          name: worldcup-predictor-db
+          property: port
+      - key: DATABASE_NAME
+        fromDatabase:
+          name: worldcup-predictor-db
+          property: database
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: worldcup-predictor-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: worldcup-predictor-db
+          property: password

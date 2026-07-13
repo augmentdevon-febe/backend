@@ -44,6 +44,11 @@ springdoc:
     enabled: true
 
 app:
+  cors:
+    allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:4200}
+  auth:
+    fallback-redirect: ${APP_FALLBACK_REDIRECT:http://localhost:4200/login}
+    allowed-origin-prefixes: ${APP_ALLOWED_ORIGINS:http://localhost:4200,https://localhost:4200}
   ai:
     provider: openai
     model: ${OPENAI_MODEL_ID:gpt-4o-mini}

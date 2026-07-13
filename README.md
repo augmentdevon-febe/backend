@@ -13,6 +13,36 @@ Spring Boot backend starter that predicts FIFA World Cup 2026 match scores using
 
 See `.env.example` for env variables and copy it to `.env` for local runtime values.
 
+For Render deployment, use the `prod` profile and set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `OPENAI_API_KEY` in the Render service environment.
+
+Render deployment
+-----------------
+
+Use Render for production hosting with a managed PostgreSQL database.
+
+If you add `render.yaml`, Render can create the web service and PostgreSQL database from the repo blueprint.
+
+1. Push the repository to GitHub.
+2. Create a Render Web Service from the GitHub repo.
+3. Create a Render PostgreSQL database and attach it to the service.
+4. Set these environment variables on the Render service:
+   - `SPRING_PROFILES_ACTIVE=prod`
+   - `SPRING_DATASOURCE_URL=jdbc:postgresql://...`
+   - `SPRING_DATASOURCE_USERNAME=...`
+   - `SPRING_DATASOURCE_PASSWORD=...`
+   - `APP_ALLOWED_ORIGINS=https://<your-frontend-domain>`
+   - `APP_FALLBACK_REDIRECT=https://<your-frontend-domain>/login`
+   - `GOOGLE_CLIENT_ID=...`
+   - `GOOGLE_CLIENT_SECRET=...`
+   - `OPENAI_API_KEY=...`
+   - `OPENAI_MODEL_ID=gpt-4o-mini` (optional)
+5. Use these Render commands:
+   - Build: `./gradlew clean bootJar`
+   - Start: `java -jar build/libs/<your-jar-name>.jar`
+6. Register this redirect URI in Google Cloud Console:
+   - `https://<your-render-service>.onrender.com/login/oauth2/code/google`
+7. Verify the deployed app with `/api/health`, `/api/auth/login`, `/api/auth/session`, and `/api/matches`.
+
 Run locally:
 
 ```bash
