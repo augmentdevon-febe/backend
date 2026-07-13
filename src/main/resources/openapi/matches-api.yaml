@@ -1,0 +1,196 @@
+openapi: 3.1.0
+info:
+  title: FIFA World Cup Predictor Matches API
+  version: 1.0.0
+  description: Matches endpoint used by frontend dropdown.
+servers:
+  - url: http://localhost:8080
+    description: Local backend
+tags:
+  - name: Matches
+    description: Match catalog for prediction flow
+paths:
+  /api/matches:
+    get:
+      tags:
+        - Matches
+      operationId: getMatches
+      summary: Get list of predictable matches
+      description: Returns a top-level JSON array of match objects.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Matches loaded successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Match"
+              examples:
+                sample:
+                  summary: Typical successful response
+                  value:
+                    - homeTeam: Mexico
+                      awayTeam: South Africa
+                      matchStage: Group A
+                      venue: Estadio Banorte
+                      matchDate: 2026-06-11T13:00:00-06:00
+                    - homeTeam: USA
+                      awayTeam: Paraguay
+                      matchStage: Group D
+                      venue: SoFi Stadium
+                      matchDate: 2026-06-12T19:00:00-06:00
+                    - homeTeam: Brazil
+                      awayTeam: Morocco
+                      matchStage: Group C
+                      venue: MetLife Stadium
+                      matchDate: 2026-06-13T16:00:00-06:00
+        "401":
+          description: No valid authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNAUTHENTICATED
+                  message: Authentication required.
+                  details: []
+                timestamp: 2026-07-13T18:25:43Z
+                path: /api/matches
+        "403":
+          description: Authenticated but forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: FORBIDDEN
+                  message: You do not have access to this resource.
+                  details: []
+                timestamp: 2026-07-13T18:25:43Z
+                path: /api/matches
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: RATE_LIMITED
+                  message: Too many requests. Try again later.
+                  details: []
+                timestamp: 2026-07-13T18:25:43Z
+                path: /api/matches
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: INTERNAL_ERROR
+                  message: Unexpected server error.
+                  details: []
+                timestamp: 2026-07-13T18:25:43Z
+                path: /api/matches
+        "503":
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: SERVICE_UNAVAILABLE
+                  message: Service temporarily unavailable.
+                  details: []
+                timestamp: 2026-07-13T18:25:43Z
+                path: /api/matches
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+      description: Spring session cookie.
+  schemas:
+    Match:
+      type: object
+      additionalProperties: false
+      required:
+        - homeTeam
+        - awayTeam
+        - matchStage
+        - venue
+        - matchDate
+      properties:
+        homeTeam:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: Mexico
+        awayTeam:
+          type: string
+          minLength: 1
+          maxLength: 80
+          example: South Africa
+        matchStage:
+          type: string
+          minLength: 1
+          maxLength: 40
+          example: Group A
+        venue:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Estadio Banorte
+        matchDate:
+          type: string
+          format: date-time
+          description: ISO-8601 datetime with timezone offset or Z.
+          example: 2026-06-11T13:00:00-06:00
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+        - timestamp
+        - path
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+        timestamp:
+          type: string
+          format: date-time
+          example: 2026-07-13T18:25:43Z
+        path:
+          type: string
+          example: /api/matches
+    ErrorBody:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+          enum:
+            - UNAUTHENTICATED
+            - FORBIDDEN
+            - RATE_LIMITED
+            - INTERNAL_ERROR
+            - SERVICE_UNAVAILABLE
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string

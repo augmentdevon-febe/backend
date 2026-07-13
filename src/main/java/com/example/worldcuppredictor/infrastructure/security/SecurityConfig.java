@@ -7,7 +7,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -35,9 +34,17 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SecurityConfig {
 
     private final CustomOidcUserService oidcUserService;
+        private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
+        private final ApiAccessDeniedHandler apiAccessDeniedHandler;
 
-    public SecurityConfig(CustomOidcUserService oidcUserService) {
+        public SecurityConfig(
+                        CustomOidcUserService oidcUserService,
+                        ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
+                        ApiAccessDeniedHandler apiAccessDeniedHandler
+        ) {
         this.oidcUserService = oidcUserService;
+                this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
+                this.apiAccessDeniedHandler = apiAccessDeniedHandler;
     }
 
     @Bean
@@ -59,7 +66,11 @@ public class SecurityConfig {
                 ))
                 .exceptionHandling(ex -> ex
                         .defaultAuthenticationEntryPointFor(
-                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                apiAuthenticationEntryPoint,
+                                new AntPathRequestMatcher("/api/**")
+                        )
+                        .defaultAccessDeniedHandlerFor(
+                                apiAccessDeniedHandler,
                                 new AntPathRequestMatcher("/api/**")
                         )
                 )

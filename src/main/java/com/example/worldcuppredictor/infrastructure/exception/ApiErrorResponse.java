@@ -3,21 +3,25 @@ package com.example.worldcuppredictor.infrastructure.exception;
 import java.time.OffsetDateTime;
 
 public class ApiErrorResponse {
+    private ErrorBody error;
     private OffsetDateTime timestamp;
-    private int status;
-    private String error;
-    private String message;
     private String path;
 
     public ApiErrorResponse() {
     }
 
-    public ApiErrorResponse(OffsetDateTime timestamp, int status, String error, String message, String path) {
-        this.timestamp = timestamp;
-        this.status = status;
+    public ApiErrorResponse(ErrorBody error, OffsetDateTime timestamp, String path) {
         this.error = error;
-        this.message = message;
+        this.timestamp = timestamp;
         this.path = path;
+    }
+
+    public ErrorBody getError() {
+        return error;
+    }
+
+    public void setError(ErrorBody error) {
+        this.error = error;
     }
 
     public OffsetDateTime getTimestamp() {
@@ -26,30 +30,6 @@ public class ApiErrorResponse {
 
     public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
-    }
-
-    public int getStatus() {
-        return status;
-    }
-
-    public void setStatus(int status) {
-        this.status = status;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public void setError(String error) {
-        this.error = error;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
     }
 
     public String getPath() {

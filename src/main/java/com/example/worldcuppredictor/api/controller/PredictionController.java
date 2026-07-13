@@ -11,9 +11,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * REST endpoints for creating, listing, and retrieving match predictions for the authenticated user.
@@ -40,7 +42,7 @@ public class PredictionController {
     public ResponseEntity<PredictionDto> create(@AuthenticationPrincipal OidcUser principal,
                                                 @Valid @RequestBody PredictionRequest req) throws Exception {
         if (principal == null) {
-            return ResponseEntity.status(401).build();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
 
         User user = userRepository.findByGoogleSubject(principal.getSubject())
@@ -76,7 +78,7 @@ public class PredictionController {
     @GetMapping("/{id}")
     public ResponseEntity<Prediction> get(@AuthenticationPrincipal OidcUser principal, @PathVariable Long id) {
         if (principal == null) {
-            return ResponseEntity.status(401).build();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
 
         User user = userRepository.findByGoogleSubject(principal.getSubject())
