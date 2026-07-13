@@ -1,13 +1,13 @@
 databases:
   - name: worldcup-predictor-db
-    plan: basic-256mb
+    plan: free
 
 services:
   - type: web
     name: worldcup-predictor
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: free
     autoDeployTrigger: commit
     healthCheckPath: /api/health
     envVars:
