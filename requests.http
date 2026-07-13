@@ -1,7 +1,8 @@
 ### REST Client examples for World Cup Predictor API
 
 @baseUrl = http://localhost:8080
-@sessionCookie = JSESSIONID=CA6118AD4B7EC377C4A87BD0BD6921F2
+@sessionCookie = JSESSIONID=PASTE_VALID_SESSION_COOKIE_HERE
+@predictionId = 1
 
 ### 1) Health check
 GET {{baseUrl}}/api/health
@@ -12,7 +13,7 @@ Accept: application/json
 # and capture the JSESSIONID cookie value for subsequent requests.
 # This request redirects to Google OAuth2 and creates a JSESSIONID cookie for the local app.
 # In the REST client, inspect the response headers for Set-Cookie and copy the JSESSIONID value.
-GET {{baseUrl}}/api/auth/login
+GET {{baseUrl}}/api/auth/login?redirect_uri=http://localhost:4200/login&redirectUrl=http://localhost:4200/login&returnUrl=http://localhost:4200/login
 Accept: application/json
 
 ### 3) Verify the authenticated session
@@ -27,8 +28,14 @@ GET {{baseUrl}}/api/auth/me
 Accept: application/json
 Cookie: {{sessionCookie}}
 
-### 5) Create a new prediction
-# Requires a logged-in browser session.
+### 5) Get predictable match catalog for dropdowns
+# Returns a top-level array of match objects.
+GET {{baseUrl}}/api/matches
+Accept: application/json
+Cookie: {{sessionCookie}}
+
+### 6) Create a new prediction
+# Requires a valid session cookie.
 POST {{baseUrl}}/api/predictions
 Content-Type: application/json
 Accept: application/json
@@ -41,3 +48,36 @@ Cookie: {{sessionCookie}}
   "venue": "",
   "matchDate": ""
 }
+
+### 7) Logout (primary frontend contract)
+# Idempotent: returns 200 even if no active session.
+POST {{baseUrl}}/api/auth/logout
+Accept: application/json
+Cookie: {{sessionCookie}}
+
+### 8) Logout via GET for manual browser testing
+GET {{baseUrl}}/api/auth/logout
+Accept: application/json
+Cookie: {{sessionCookie}}
+
+
+### 9) Validate session after logout (expect unauthenticated)
+GET {{baseUrl}}/api/auth/session
+Accept: application/json
+Cookie: {{sessionCookie}}
+
+
+### 10) Example unauthenticated error shape (expect 401)
+GET {{baseUrl}}/api/matches
+Accept: application/json
+
+### Example 401 body
+# {
+#   "error": {
+#     "code": "UNAUTHENTICATED",
+#     "message": "Authentication required.",
+#     "details": []
+#   },
+#   "timestamp": "2026-07-13T18:25:43Z",
+#   "path": "/api/matches"
+# }

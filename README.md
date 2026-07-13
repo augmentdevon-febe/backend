@@ -6,7 +6,9 @@ Spring Boot backend starter that predicts FIFA World Cup 2026 match scores using
 - Gradle build
 - H2 file-based DB (persisted to `./data/worldcupdb`)
 - Google OAuth2 login (store user on first login)
+- Match catalog endpoint seeded from JSON (`GET /api/matches`)
 - Prediction endpoint that calls OpenAI and stores results
+- Strict API error envelope (`error.code`, `error.message`, `error.details`, `timestamp`, `path`)
 - OpenAPI / Swagger UI
 
 See `.env.example` for env variables and copy it to `.env` for local runtime values.
@@ -27,6 +29,7 @@ Run tests:
 
 H2 console: http://localhost:8080/h2-console
 Swagger UI: http://localhost:8080/swagger-ui/index.html
+OpenAPI contract file: `src/main/resources/openapi/matches-api.yaml`
 
 Authentication and session cookie flow
 --------------------------------------
@@ -55,6 +58,7 @@ gradlew.bat bootRun
    - `GET /api/auth/me`
 
 6. After the session is verified, use the same `JSESSIONID` cookie to call:
+   - `GET /api/matches`
    - `POST /api/predictions`
    - `GET /api/predictions?page=0&size=10`
    - `GET /api/predictions/{id}`
@@ -71,9 +75,51 @@ Environment variables (loaded from `.env` when present):
 To run locally with the REST client:
 1. Start the backend.
 2. Use the `/api/auth/login` request from `requests.http` to initiate login and capture the `JSESSIONID` cookie.
-3. Use that cookie in `Cookie: JSESSIONID=...` for `/api/auth/session`, `/api/auth/me`, and prediction requests.
+3. Use that cookie in `Cookie: JSESSIONID=...` for `/api/auth/session`, `/api/auth/me`, `/api/matches`, and prediction requests.
 
-Database seeding: TeamStats seeded on first run if empty (sample teams included).
+Database seeding:
+- TeamStats are seeded/synced on startup.
+- Match catalog data is loaded from `src/main/resources/bootstrap/matches.json` and synced on startup.
+
+API endpoints (current)
+-----------------------
+
+Public endpoints:
+- `GET /api/health`
+- `GET /api/auth/login`
+- `POST /api/auth/test-session` (local test helper)
+
+Authenticated endpoints (require `Cookie: JSESSIONID=...`):
+- `GET /api/auth/session`
+- `GET /api/auth/me`
+- `GET /api/matches`
+- `POST /api/predictions`
+- `GET /api/predictions?page=0&size=10`
+- `GET /api/predictions/{id}`
+
+Error response contract
+-----------------------
+
+API errors use a strict JSON envelope:
+
+```json
+{
+   "error": {
+      "code": "UNAUTHENTICATED",
+      "message": "Authentication required.",
+      "details": []
+   },
+   "timestamp": "2026-07-13T18:25:43Z",
+   "path": "/api/matches"
+}
+```
+
+Error codes currently used:
+- `UNAUTHENTICATED` (401)
+- `FORBIDDEN` (403)
+- `RATE_LIMITED` (429)
+- `INTERNAL_ERROR` (500)
+- `SERVICE_UNAVAILABLE` (503)
 
 // If error pushing code chages to github then do the next:
 git credential-manager github login

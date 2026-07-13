@@ -7,7 +7,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
@@ -34,32 +33,32 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SecurityConfig {
 
     private final CustomOidcUserService oidcUserService;
+        private final AuthRedirectSuccessHandler authRedirectSuccessHandler;
         private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
         private final ApiAccessDeniedHandler apiAccessDeniedHandler;
 
         public SecurityConfig(
                         CustomOidcUserService oidcUserService,
+                        AuthRedirectSuccessHandler authRedirectSuccessHandler,
                         ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
                         ApiAccessDeniedHandler apiAccessDeniedHandler
         ) {
         this.oidcUserService = oidcUserService;
+                this.authRedirectSuccessHandler = authRedirectSuccessHandler;
                 this.apiAuthenticationEntryPoint = apiAuthenticationEntryPoint;
                 this.apiAccessDeniedHandler = apiAccessDeniedHandler;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        SavedRequestAwareAuthenticationSuccessHandler successHandler = new SavedRequestAwareAuthenticationSuccessHandler();
-        successHandler.setDefaultTargetUrl("/api/auth/session");
-        successHandler.setAlwaysUseDefaultTargetUrl(true);
-
         SimpleUrlAuthenticationFailureHandler failureHandler = new SimpleUrlAuthenticationFailureHandler("/api/auth/login?error=true");
 
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/test-session", "/oauth2/**", "/login/oauth2/**", "/error", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/logout", "/api/auth/test-session", "/oauth2/**", "/login/oauth2/**", "/error", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                         new AntPathRequestMatcher("/h2-console/**"),
                         new AntPathRequestMatcher("/api/**")
@@ -79,7 +78,7 @@ public class SecurityConfig {
                         .loginPage("/api/auth/login")
                         .authorizationEndpoint(authz -> authz.baseUri("/oauth2/authorization"))
                         .redirectionEndpoint(redir -> redir.baseUri("/login/oauth2/code/*"))
-                        .successHandler(successHandler)
+                        .successHandler(authRedirectSuccessHandler)
                         .failureHandler(failureHandler)
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService))
                 )

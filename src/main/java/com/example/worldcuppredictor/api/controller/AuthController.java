@@ -2,6 +2,9 @@ package com.example.worldcuppredictor.api.controller;
 
 import com.example.worldcuppredictor.domain.entity.User;
 import com.example.worldcuppredictor.domain.repository.UserRepository;
+import com.example.worldcuppredictor.infrastructure.security.AuthRedirectService;
+import com.example.worldcuppredictor.infrastructure.security.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -22,18 +25,31 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 @RequestMapping("/api/auth")
 public class AuthController {
     private final UserRepository userRepository;
+    private final AuthRedirectService authRedirectService;
+    private final AuthService authService;
 
-    public AuthController(UserRepository userRepository) {
+    public AuthController(UserRepository userRepository,
+                          AuthRedirectService authRedirectService,
+                          AuthService authService) {
         this.userRepository = userRepository;
+        this.authRedirectService = authRedirectService;
+        this.authService = authService;
     }
 
     @GetMapping("/login")
     public void login(@RequestParam(name = "error", required = false) String error,
+                      @RequestParam(name = "redirect_uri", required = false) String redirectUri,
+                      @RequestParam(name = "redirectUrl", required = false) String redirectUrl,
+                      @RequestParam(name = "returnUrl", required = false) String returnUrl,
+                      HttpServletRequest request,
                       HttpServletResponse response) throws IOException {
         if (error != null) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "OAuth login failed");
             return;
         }
+
+        String redirectTarget = authRedirectService.resolveFromParams(redirectUri, redirectUrl, returnUrl);
+        authRedirectService.storeRedirectInSession(request.getSession(true), redirectTarget);
         response.sendRedirect("/oauth2/authorization/google");
     }
 
@@ -61,6 +77,24 @@ public class AuthController {
             u.setGoogleSubject(principal.getSubject());
             return u;
         });
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request,
+                                                      HttpServletResponse response,
+                                                      Authentication authentication) {
+        authService.logout(request, response, authentication);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Logged out successfully"
+        ));
+    }
+
+    @GetMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logoutForBrowser(HttpServletRequest request,
+                                                                HttpServletResponse response,
+                                                                Authentication authentication) {
+        return logout(request, response, authentication);
     }
 
     @PostMapping("/test-session")
