@@ -1,15 +1,15 @@
 databases:
   - name: worldcup-predictor-db
-    plan: starter
+    plan: basic-256mb
 
 services:
   - type: web
     name: worldcup-predictor
-    env: java
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     plan: starter
-    buildCommand: ./gradlew clean bootJar
-    startCommand: java -jar build/libs/*.jar
-    autoDeploy: true
+    autoDeployTrigger: commit
+    healthCheckPath: /api/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
@@ -33,3 +33,15 @@ services:
         fromDatabase:
           name: worldcup-predictor-db
           property: password
+      - key: APP_ALLOWED_ORIGINS
+        sync: false
+      - key: APP_FALLBACK_REDIRECT
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL_ID
+        value: gpt-4o-mini

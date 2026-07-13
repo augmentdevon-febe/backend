@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.example
+build/
+.gradle/
+bin/
+data/
+gradle-8.5/
+gradle-9.0.0/
+gradle-8.5-bin.zip
+gradle-9.0-bin.zip
+cookiejar.txt
+payload.json
+requests.http
+README.md
