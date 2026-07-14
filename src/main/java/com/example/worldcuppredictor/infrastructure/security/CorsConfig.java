@@ -22,8 +22,8 @@ public class CorsConfig {
                 .filter(origin -> !origin.isBlank())
                 .toList());
         config.setAllowCredentials(true);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Content-Type", "Accept", "X-Requested-With", "Authorization", "X-CSRF-TOKEN"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Content-Type", "Authorization", "X-Requested-With"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);

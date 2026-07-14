@@ -55,7 +55,7 @@ public class SecurityConfig {
 
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/logout", "/api/auth/test-session", "/oauth2/**", "/login/oauth2/**", "/error", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/health", "/api/auth/login", "/api/auth/session", "/api/auth/logout", "/api/auth/test-session", "/oauth2/**", "/login/oauth2/**", "/error", "/h2-console/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
                 .cors(Customizer.withDefaults())

@@ -27,8 +27,7 @@ If you add `render.yaml`, Render can create the web service and PostgreSQL datab
 3. Create a Render PostgreSQL database and attach it to the service.
 4. Set these environment variables on the Render service:
    - `SPRING_PROFILES_ACTIVE=prod`
-   - `APP_ALLOWED_ORIGINS=https://<your-frontend-domain>`
-   - `APP_FALLBACK_REDIRECT=https://<your-frontend-domain>/login`
+   - `FRONTEND_URL=https://<your-frontend-domain>`
    - `GOOGLE_CLIENT_ID=...`
    - `GOOGLE_CLIENT_SECRET=...`
    - `OPENAI_API_KEY=...`

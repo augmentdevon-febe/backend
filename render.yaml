@@ -33,9 +33,7 @@ services:
         fromDatabase:
           name: worldcup-predictor-db
           property: password
-      - key: APP_ALLOWED_ORIGINS
-        sync: false
-      - key: APP_FALLBACK_REDIRECT
+      - key: FRONTEND_URL
         sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false

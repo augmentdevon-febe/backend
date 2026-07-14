@@ -34,9 +34,8 @@ public class AuthService {
 
         SecurityContextHolder.clearContext();
 
-        boolean secureCookie = request.isSecure();
         for (String cookieName : AUTH_COOKIE_NAMES) {
-            response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(cookieName, secureCookie));
+            response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(cookieName));
         }
 
         log.info(
@@ -47,12 +46,12 @@ public class AuthService {
         );
     }
 
-    private static String expiredCookie(String cookieName, boolean secureCookie) {
+    private static String expiredCookie(String cookieName) {
         return ResponseCookie.from(cookieName, "")
                 .httpOnly(true)
-                .secure(secureCookie)
+                .secure(true)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite("None")
                 .maxAge(Duration.ZERO)
                 .build()
                 .toString();

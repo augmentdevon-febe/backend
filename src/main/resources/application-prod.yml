@@ -13,3 +13,19 @@ spring:
 
 server:
   port: ${PORT:8080}
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        same-site: none
+        secure: true
+        http-only: true
+        path: /
+
+app:
+  frontend-url: ${FRONTEND_URL}
+  cors:
+    allowed-origins: ${FRONTEND_URL}
+  auth:
+    fallback-redirect: ${FRONTEND_URL}/predict
+    allowed-origin-prefixes: ${FRONTEND_URL}

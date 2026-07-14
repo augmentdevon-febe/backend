@@ -52,6 +52,9 @@ class AuthControllerLogoutIntegrationTest {
         List<String> setCookieHeaders = logoutResult.getResponse().getHeaders(HttpHeaders.SET_COOKIE);
         assertTrue(setCookieHeaders.stream().anyMatch(v -> v.contains("JSESSIONID=")), "Expected JSESSIONID clearing cookie");
         assertTrue(setCookieHeaders.stream().anyMatch(v -> v.contains("Max-Age=0")), "Expected expired cookie Max-Age=0");
+        assertTrue(setCookieHeaders.stream().anyMatch(v -> v.contains("SameSite=None")), "Expected SameSite=None on clearing cookie");
+        assertTrue(setCookieHeaders.stream().anyMatch(v -> v.contains("Secure")), "Expected Secure on clearing cookie");
+        assertTrue(setCookieHeaders.stream().anyMatch(v -> v.contains("HttpOnly")), "Expected HttpOnly on clearing cookie");
 
         assertThrows(IllegalStateException.class, activeSession::getCreationTime);
 
@@ -71,6 +74,22 @@ class AuthControllerLogoutIntegrationTest {
         List<String> setCookieHeaders = logoutResult.getResponse().getHeaders(HttpHeaders.SET_COOKIE);
         assertTrue(setCookieHeaders.stream().anyMatch(v -> v.contains("JSESSIONID=")), "Expected JSESSIONID clearing cookie");
     }
+
+        @Test
+        void sessionEndpointReturnsAuthenticatedTrueAfterTestSessionCreation() throws Exception {
+                MvcResult sessionResult = mockMvc.perform(post("/api/auth/test-session"))
+                                .andExpect(status().isOk())
+                                .andReturn();
+
+                MockHttpSession activeSession = (MockHttpSession) sessionResult.getRequest().getSession(false);
+                assertNotNull(activeSession);
+
+                mockMvc.perform(get("/api/auth/session").session(activeSession))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.authenticated").value(true))
+                                .andExpect(jsonPath("$.email").isString())
+                                .andExpect(jsonPath("$.subject").isString());
+        }
 
     @Test
     void logoutPreflightAllowsCredentialedAngularOrigin() throws Exception {
