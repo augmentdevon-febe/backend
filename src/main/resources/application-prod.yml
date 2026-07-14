@@ -27,5 +27,5 @@ app:
   cors:
     allowed-origins: ${FRONTEND_URL}
   auth:
-    fallback-redirect: ${FRONTEND_URL}/predict
+    fallback-redirect: ${FRONTEND_URL}/login
     allowed-origin-prefixes: ${FRONTEND_URL}

@@ -27,7 +27,7 @@ Thumbs.db
 # Environment and local configuration
 .env
 !.env.example
-client_secret_738179361904-kkdr81iu4uqebolp09e4s76qjog9eomu.apps.googleusercontent.com.json
+cliet_conf.json
 cookiejar.txt
 payload.json
 requests.http
