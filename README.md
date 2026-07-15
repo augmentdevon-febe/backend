@@ -118,8 +118,7 @@ Authenticated endpoints (require `Cookie: JSESSIONID=...`):
 - `GET /api/auth/me`
 - `GET /api/matches`
 - `POST /api/predictions`
-- `GET /api/predictions?page=0&size=10`
-- `GET /api/predictions/{id}`
+
 
 Error response contract
 -----------------------
@@ -147,3 +146,7 @@ Error codes currently used:
 
 // If error pushing code chages to github then do the next:
 git credential-manager github login
+
+Note: for a deeper technical overview of the backend architecture
+and the bootstrap flow for `matches.json`, 
+see [ARCHITECTURAL_ANALYSIS.md](./ARCHITECTURAL_ANALYSIS.md).

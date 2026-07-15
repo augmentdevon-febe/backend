@@ -71,6 +71,122 @@ Resultado log:
 "Match catalog sync complete: inserted=1, updated=2, removed=1, totalSamples=3"
 ```
 
+### 🧩 Explicación de diseño: clases y secuencia
+
+La sección 0 describe un flujo de bootstrap en el que:
+
+1. El archivo `src/main/resources/bootstrap/matches.json` actúa como fuente inicial de datos.
+2. Al arrancar la aplicación, el componente `MatchCatalogSeeder` lee ese JSON.
+3. Cada registro se convierte en una entidad JPA de tipo `MatchCatalog`.
+4. El seeder compara los datos del JSON con los ya existentes en la base de datos y realiza:
+   - insert si no existe,
+   - update si existe,
+   - delete si ya no aparece en el JSON.
+5. Posteriormente, el endpoint `GET /api/matches` consulta esos datos para exponerlos al frontend.
+
+En otras palabras, este flujo convierte un archivo estático en datos persistidos y luego los sirve a través de la API.
+
+### 🧱 Diagrama de clases
+
+> Para visualizar este diagrama en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+
+```mermaid
+classDiagram
+    class MatchCatalogSeeder {
+        +seed()
+        -loadSamples()
+        -apply(target, sample)
+        -matchKey(...)
+        -normalize(...)
+    }
+
+    class MatchCatalogRepository {
+        +findAll()
+        +save(entity)
+        +delete(entity)
+    }
+
+    class MatchCatalog {
+        -Long id
+        -String homeTeam
+        -String awayTeam
+        -String matchStage
+        -String venue
+        -OffsetDateTime matchDate
+        +setHomeTeam(String)
+        +setAwayTeam(String)
+        +setMatchStage(String)
+        +setVenue(String)
+        +setMatchDate(OffsetDateTime)
+    }
+
+    class BootstrapMatch {
+        <<record>>
+        +String homeTeam
+        +String awayTeam
+        +String matchStage
+        +String venue
+        +OffsetDateTime matchDate
+    }
+
+    class ObjectMapper {
+        +readValue(...)
+    }
+
+    class MatchController {
+        +listMatches()
+    }
+
+    MatchCatalogSeeder --> ObjectMapper : usa
+    MatchCatalogSeeder --> BootstrapMatch : deserializa a
+    MatchCatalogSeeder --> MatchCatalogRepository : consulta/persiste
+    MatchCatalogSeeder --> MatchCatalog : crea o actualiza
+    MatchController --> MatchCatalogRepository : consulta
+    MatchCatalogRepository --> MatchCatalog : persiste/recupera
+```
+
+### 🔄 Diagrama de secuencia
+
+> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Spring as Spring Boot
+    participant Seeder as MatchCatalogSeeder
+    participant Mapper as ObjectMapper
+    participant Repo as MatchCatalogRepository
+    participant DB as Base de datos
+    participant Controller as MatchController
+
+    Spring->>Seeder: crea bean y ejecuta @PostConstruct
+    Seeder->>Mapper: leer matches.json
+    Mapper-->>Seeder: List<BootstrapMatch>
+
+    Seeder->>Repo: findAll()
+    Repo-->>Seeder: List<MatchCatalog>
+
+    loop para cada registro del JSON
+        alt registro no existe en DB
+            Seeder->>DB: crear MatchCatalog
+            Seeder->>Repo: save(entity)
+        else registro existe
+            Seeder->>DB: actualizar MatchCatalog
+            Seeder->>Repo: save(entity)
+        end
+    end
+
+    loop para registros obsoletos en DB
+        Seeder->>Repo: delete(entity)
+    end
+
+    Seeder-->>Spring: log "Match catalog sync complete..."
+
+    Controller->>Repo: consultar matches
+    Repo-->>Controller: List<MatchCatalog>
+    Controller-->>Client: responde JSON con MatchResponse
+```
+
 ---
 
 ## 1. MAPEO DE PACKAGES, CLASES Y COMPONENTES PRINCIPALES
@@ -266,31 +382,7 @@ com.example.worldcuppredictor/
 - Parser resiliente a múltiples formatos de respuesta IA
 - Explicación truncada para compatibilidad con esquema legacy
 
-### 2.3 FLUJO #3: Listado de Predicciones (Nombre: "PredictionFetch-Paginated-Flow")
-
-```
-┌─ Authenticated User ─┐
-    │
-    ├─→ GET /api/predictions?page=0&size=10
-    │       ↓
-    │   PredictionController.list()
-    │       ├─→ Valida @AuthenticationPrincipal
-    │       ├─→ Busca User por googleSubject
-    │       ├─→ Crea Pageable con Sort customizado
-    │       │   Sort: matchDate ASC (nulls last), requestedAt DESC
-    │       └─→ PredictionRepository.findByUser(user, pageable)
-    │           ↓
-    │       Retorna Page<Prediction> con metadatos de paginación
-    │       ↓
-    └─→ HTTP 200 con Page JSON
-```
-
-**Ordenamiento:**
-- Primera prioridad: matchDate ASC (partidos más lejanos primero)
-- Valores null en matchDate van al final
-- Segunda prioridad: requestedAt DESC (predicciones más recientes primero)
-
-### 2.4 FLUJO #4: Logout (Nombre: "Session-Invalidation-Logout-Flow")
+### 2.3 FLUJO #3: Logout (Nombre: "Session-Invalidation-Logout-Flow")
 
 ```
 ┌─ Authenticated User ─┐
@@ -309,7 +401,7 @@ com.example.worldcuppredictor/
     │       └─→ HTTP 200 { "success": true, "message": "Logged out successfully" }
 ```
 
-### 2.5 FLUJO #5: Inicialización de Datos (Nombre: "Bootstrap-Data-Synchronization-Flow")
+### 2.4 FLUJO #4: Inicialización de Datos (Nombre: "Bootstrap-Data-Synchronization-Flow")
 
 ```
 ┌─ Aplicación Inicia ─┐
