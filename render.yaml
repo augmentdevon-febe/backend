@@ -1,10 +1,10 @@
 databases:
-  - name: worldcup-predictor-db
+  - name: world-soccer-predictor-db
     plan: free
 
 services:
   - type: web
-    name: worldcup-predictor
+    name: world-soccer-predictor
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
@@ -15,23 +15,23 @@ services:
         value: prod
       - key: DATABASE_HOST
         fromDatabase:
-          name: worldcup-predictor-db
+          name: world-soccer-predictor-db
           property: host
       - key: DATABASE_PORT
         fromDatabase:
-          name: worldcup-predictor-db
+          name: world-soccer-predictor-db
           property: port
       - key: DATABASE_NAME
         fromDatabase:
-          name: worldcup-predictor-db
+          name: world-soccer-predictor-db
           property: database
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
-          name: worldcup-predictor-db
+          name: world-soccer-predictor-db
           property: user
       - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase:
-          name: worldcup-predictor-db
+          name: world-soccer-predictor-db
           property: password
       - key: FRONTEND_URL
         sync: false
