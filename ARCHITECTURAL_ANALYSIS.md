@@ -84,70 +84,10 @@ La sección 0 describe un flujo de bootstrap en el que:
    - delete si ya no aparece en el JSON.
 5. Posteriormente, el endpoint `GET /api/matches` consulta esos datos para exponerlos al frontend.
 
-En otras palabras, este flujo convierte un archivo estático en datos persistidos y luego los sirve a través de la API.
+Este flujo convierte un archivo estático en datos persistentes y para luego poder servirlos a través de la API.
 
-### 🧱 Diagrama de clases
+### Diagrama de secuencia
 
-> Para visualizar este diagrama en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
-
-```mermaid
-classDiagram
-    class MatchCatalogSeeder {
-        +seed()
-        -loadSamples()
-        -apply(target, sample)
-        -matchKey(...)
-        -normalize(...)
-    }
-
-    class MatchCatalogRepository {
-        +findAll()
-        +save(entity)
-        +delete(entity)
-    }
-
-    class MatchCatalog {
-        -Long id
-        -String homeTeam
-        -String awayTeam
-        -String matchStage
-        -String venue
-        -OffsetDateTime matchDate
-        +setHomeTeam(String)
-        +setAwayTeam(String)
-        +setMatchStage(String)
-        +setVenue(String)
-        +setMatchDate(OffsetDateTime)
-    }
-
-    class BootstrapMatch {
-        <<record>>
-        +String homeTeam
-        +String awayTeam
-        +String matchStage
-        +String venue
-        +OffsetDateTime matchDate
-    }
-
-    class ObjectMapper {
-        +readValue(...)
-    }
-
-    class MatchController {
-        +listMatches()
-    }
-
-    MatchCatalogSeeder --> ObjectMapper : usa
-    MatchCatalogSeeder --> BootstrapMatch : deserializa a
-    MatchCatalogSeeder --> MatchCatalogRepository : consulta/persiste
-    MatchCatalogSeeder --> MatchCatalog : crea o actualiza
-    MatchController --> MatchCatalogRepository : consulta
-    MatchCatalogRepository --> MatchCatalog : persiste/recupera
-```
-
-### 🔄 Diagrama de secuencia
-
-> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
 
 ```mermaid
 sequenceDiagram
@@ -309,9 +249,7 @@ com.example.worldcuppredictor/
         Cliente redirigido a frontend con JSESSIONID en cookie
 ```
 
-### 🔄 Diagrama de secuencia
-
-> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+### Diagrama de secuencia
 
 ```mermaid
 sequenceDiagram
@@ -420,9 +358,8 @@ sequenceDiagram
     └─→ HTTP 200 con PredictionDto
 ```
 
-### 🔄 Diagrama de secuencia
+### Diagrama de secuencia
 
-> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
 
 ```mermaid
 sequenceDiagram
@@ -497,9 +434,8 @@ sequenceDiagram
     │       └─→ HTTP 200 { "success": true, "message": "Logged out successfully" }
 ```
 
-### 🔄 Diagrama de secuencia
+### Diagrama de secuencia
 
-> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
 
 ```mermaid
 sequenceDiagram
@@ -1327,9 +1263,8 @@ CLIENTE BACKEND GOOGLE
  │
 ```
 
-### 🔄 Diagrama de secuencia
+### Diagrama de secuencia
 
-> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
 
 ```mermaid
 sequenceDiagram
