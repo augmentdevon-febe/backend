@@ -453,14 +453,14 @@ sequenceDiagram
   alt existe sesión activa
     Service->>Session: invalidate()
     Service->>Security: clearContext()
-    Service-->>Browser: Set-Cookie JSESSIONID=; Max-Age=0; HttpOnly; Secure; SameSite=None
-    Service-->>Browser: Set-Cookie SESSION=; Max-Age=0; HttpOnly; Secure; SameSite=None
+    Service-->>Browser: Set-Cookie JSESSIONID expirada (Max-Age 0, HttpOnly, Secure, SameSite None)
+    Service-->>Browser: Set-Cookie SESSION expirada (Max-Age 0, HttpOnly, Secure, SameSite None)
     Service-->>Controller: Logout exitoso
-    Controller-->>User: HTTP 200 { success: true, message: "Logged out successfully" }
+    Controller-->>User: HTTP 200 success true, message Logged out successfully
   else no hay sesión activa
     Service->>Security: clearContext()
     Service-->>Controller: Sin sesión previa
-    Controller-->>User: HTTP 200 { success: true, message: "Logged out successfully" }
+    Controller-->>User: HTTP 200 success true, message Logged out successfully
   end
 ```
 
