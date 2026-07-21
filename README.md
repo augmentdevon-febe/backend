@@ -1,6 +1,6 @@
-# World Cup Predictor
+# World Soccer Predictor
 
-Spring Boot backend starter that predicts FIFA World Cup 2026 match scores using an external AI provider (OpenAI by default). Features:
+Spring Boot backend starter that predicts World Soccer match scores using an external AI provider (OpenAI by default). Features:
 
 - Spring Boot 3.x, Java 21
 - Gradle build

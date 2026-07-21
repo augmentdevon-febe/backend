@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: FIFA World Cup Predictor Matches API
+  title: World Soccer Predictor Matches API
   version: 1.1.0
   description: Matches endpoint used by frontend dropdown.
 servers:
