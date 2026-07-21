@@ -1219,130 +1219,10 @@ Set-Cookie: JSESSIONID=...; Path=/; Secure; HttpOnly; SameSite=None
         description: No valid authenticated session
 ```
 
----
 
-## 9. FLOW DE SESIÓN Y AUTENTICACIÓN DETALLADO
+## 9. MATRIZ DE AUTORIZACIONES
 
-### 9.1 Google OAuth2 Flow Completo
-
-```
-CLIENTE BACKEND GOOGLE
- ↓        ↓        ↓
- │        │        │
- │ 1. GET /api/auth/login?redirectUrl=http://localhost:4200
- ├──→     │        │
- │        ├─────────────────→ Almacena redirectUrl en sesión
- │        │        │
- │ 2. Redirige a /oauth2/authorization/google
- ├──→     │        │
- │        ├─────────────────────────→ Google OAuth2 endpoint
- │        │        │
- │        ├────────────────────────────────────────────────→
- │        │        │     3. User logs in to Google
- │        │        │
- │        ├────────────────────────────────────────────────←
- │        │        │
- │        ├────────────────────────────────────────────────→
- │        │        │     4. Autoriza la app
- │        │        │
- │        ├────────────────────────────────────────────────←
- │        │        │     5. Google redirige a:
- │        │        │        /login/oauth2/code/google?code=xxx&state=xxx
- │        │
- │ 5. Browser sigue redirect
- ├──────→ /login/oauth2/code/google?code=xxx
- │        │
- │        ├─ Spring intercepts OAuth2 callback
- │        ├─ Exchange code por tokens (offline)
- │        ├─ Call UserInfo endpoint con access token
- │        ├─ CustomOidcUserService.loadUser()
- │        │  ├─ Valida OIDC token
- │        │  ├─ Extrae: sub (googleSubject), email, name, picture
- │        │  ├─ Busca User por sub
- │        │  └─ Si no existe: crea nuevo User (role=USER, createdAt=now)
- │        │
- │        ├─ AuthRedirectSuccessHandler.onAuthenticationSuccess()
- │        │  ├─ Recupera redirectUrl desde sesión
- │        │  └─ response.sendRedirect(redirectUrl)
- │        │
- │ 6. Browser redirigido a frontend
- ├──────← HTTP 302 Location: http://localhost:4200
- │        Set-Cookie: JSESSIONID=abc123; Secure; HttpOnly; SameSite=None
- │
-```
-
-### Diagrama de secuencia
-
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant Browser as Cliente (Browser)
-  participant Backend as Backend API
-  participant Session as HttpSession
-  participant Spring as Spring Security OAuth2
-  participant Google as Google OAuth2
-  participant Oidc as CustomOidcUserService
-  participant Users as UserRepository
-  participant Success as AuthRedirectSuccessHandler
-  participant Frontend as Frontend App
-
-  Browser->>Backend: GET /api/auth/login?redirectUrl=http://localhost:4200
-  Backend->>Session: guardar redirectUrl
-  Backend-->>Browser: 302 /oauth2/authorization/google
-
-  Browser->>Spring: GET /oauth2/authorization/google
-  Spring-->>Browser: 302 accounts.google.com/o/oauth2/v2/auth
-
-  Browser->>Google: login + consentimiento
-  Google-->>Browser: 302 /login/oauth2/code/google?code=...&state=...
-
-  Browser->>Spring: GET /login/oauth2/code/google?code=...
-  Spring->>Google: exchange code por access/id token
-  Google-->>Spring: tokens OIDC
-
-  Spring->>Oidc: loadUser(idToken, accessToken)
-  Oidc->>Users: findByGoogleSubject(sub)
-
-  alt usuario no existe
-    Oidc->>Users: save(User role=USER)
-  else usuario existe
-    Oidc-->>Spring: reutilizar User existente
-  end
-
-  Spring->>Success: onAuthenticationSuccess()
-  Success->>Session: leer redirectUrl
-  Success-->>Browser: 302 redirectUrl + Set-Cookie JSESSIONID
-
-  Browser->>Frontend: navega a app con sesión activa
-```
-
-### 9.3 Session Management
-
-**Almacenamiento:** H2/PostgreSQL DB (Default Spring Session)
-
-**Duración:** Default de Spring (30 minutos inactividad)
-
-**Cookie:**
-```
-JSESSIONID=ABC123DEF456; 
-  Path=/; 
-  Domain=backend.example.com;
-  Secure (producción);
-  HttpOnly;
-  SameSite=None (para cross-origin)
-```
-
-**Invalidación:**
-- Manual: `POST /api/auth/logout`
-- Automática: Timeout inactividad
-- Explícita: `HttpSession.invalidate()`
-
----
-
-## 10. MATRIZ DE AUTORIZACIONES
-
-### 10.1 Rutas Públicas (Sin autenticación)
+### 9.1 Rutas Públicas (Sin autenticación)
 
 ```
 GET  /api/health                              → 200 OK
@@ -1352,7 +1232,7 @@ POST /api/auth/logout                         → 200 OK
 GET  /error                                    → Error handler
 ```
 
-### 10.2 Rutas Protegidas (Requieren OidcUser autenticado)
+### 9.2 Rutas Protegidas (Requieren OidcUser autenticado)
 
 ```
 GET  /api/auth/session                        → 200 OK (cuando auth)
@@ -1362,61 +1242,21 @@ POST /api/predictions                          → 200 PredictionDto (validated)
                                                → 404 (si no existe o pertenece a otro)
 ```
 
-### 10.3 Autorización a Nivel de Dominio
+### 9.3 Autorización a Nivel de Dominio
 - No hay endpoints de administración todavía (Role.ADMIN no usado)
 
 ---
 
-## 11. INICIALIZACIÓN Y BOOTSTRAP
+## 11. CONFIGURACIÓN DE PERFILES
 
-### 11.1 Orden de Inicialización en Startup
-
-```
-1. DotenvEnvironmentPostProcessor
-   ├─ Carga .env del file system
-   └─ Establece propiedades Spring
-
-2. Spring Context Initialization
-   ├─ Scans @Component, @Service, @RestController, @Bean
-   ├─ Dependency injection
-   └─ Inicializa beans
-
-3. DataSeeder @PostConstruct
-   ├─ Verifica TeamStatsRepository
-   ├─ Sincroniza 30+ equipos de World Cup 2026
-   ├─ Inserta/actualiza/elimina según cambios
-   └─ Loguea resultados
-
-4. MatchCatalogSeeder @PostConstruct
-   ├─ Lee bootstrap/matches.json
-   ├─ Parsea con Jackson ObjectMapper
-   ├─ Sincroniza MatchCatalog
-   └─ Loguea resultados
-
-5. Server Listen
-   └─ :8080 (default)
-
-6. Aplicación lista para requests
-```
-
-### 11.2 Datos de Bootstrap
-
-**MatchCatalog:**
-- Cargado desde `bootstrap/matches.json` en resources
-- Sincronizado por matchKey (home|away|stage|venue|date)
-
----
-
-## 12. CONFIGURACIÓN DE PERFILES
-
-### 12.1 Perfiles Spring
+### 11.1 Perfiles Spring
 
 | Perfil | Cuando | Base de Datos | SSL | CORS Origins |
 |--------|--------|---------------|-----|--------------|
 | default (dev) | Local | H2 file:// | No | http://localhost:4200 |
 | prod | Render | PostgreSQL | Sí (Secure cookies) | ${FRONTEND_URL} |
 
-### 12.2 Activación de Perfiles
+### 11.2 Activación de Perfiles
 
 **Desarrollo:**
 ```bash
@@ -1433,7 +1273,39 @@ export SPRING_PROFILES_ACTIVE=prod
 
 ---
 
-## 13. TABLA DE TECNOLOGÍAS Y VERSIONES
+## 12. SUMMARY DE DECISIONES ARQUITECTÓNICAS
+
+| Decisión | Impacto | Justificación |
+|----------|--------|---------------|
+| Spring Security OAuth2 (stateful) | Sessions HTTP con cookies | Integración nativa |
+| Ports & Adapters (AiPredictionClient) | Desacoplamiento de OpenAI | Extensibilidad, testabilidad |
+| Multi-strategy parser | Resiliencia a cambios API | Producción-ready |
+| Entity-level user isolation | Seguridad de datos | Evita data leaks entre usuarios |
+| JPA + H2/PostgreSQL | ORM con auto-schema | Simplifica persistencia |
+| Centralized error handling | Consistencia en respuestas | Contrato API predecible |
+| @PostConstruct seeding | Data consistency | Garantiza integridad en startup |
+| googleSubject as primary key | Inmutabilidad | OAuth2 best practice |
+| Explanation truncation (legacy) | Compatibilidad | Migración gradual de schema |
+| Logging en DEBUG | Debugging facilitado | Rastreo en desarrollo |
+
+---
+
+## 13. TABLA DE RIESGOS Y MITIGACIONES
+
+| Riesgo | Probabilidad | Impacto | Mitigación |
+|--------|--------------|--------|-----------|
+| OpenAI API downtime | Media | Alto | AiRateLimitException + HTTP 429, cliente implementa retry |
+| Session affinity en load balancing | Media | Alto | Usar sticky sessions o shared session store (Spring Session) |
+| Data seeding lento en startup | Baja | Bajo | ~30ms para 30 equipos, aceptable |
+| Schema legacy (VARCHAR 255) | Baja | Bajo | Truncado de explanation, warning log |
+| CORS misconfiguration | Baja | Alto | Strict allowed-origins via config |
+| SQL injection | Muy baja | Crítico | JPA prepared statements + parameterized queries |
+| Broken authentication | Muy baja | Crítico | Spring Security OIDC + session validation |
+
+---
+
+
+## 14. TABLA DE TECNOLOGÍAS Y VERSIONES
 
 | Tecnología | Versión | Propósito |
 |------------|---------|----------|
@@ -1454,38 +1326,7 @@ export SPRING_PROFILES_ACTIVE=prod
 
 ---
 
-## 14. SUMMARY DE DECISIONES ARQUITECTÓNICAS
-
-| Decisión | Impacto | Justificación |
-|----------|--------|---------------|
-| Spring Security OAuth2 (stateful) | Sessions HTTP con cookies | Integración nativa |
-| Ports & Adapters (AiPredictionClient) | Desacoplamiento de OpenAI | Extensibilidad, testabilidad |
-| Multi-strategy parser | Resiliencia a cambios API | Producción-ready |
-| Entity-level user isolation | Seguridad de datos | Evita data leaks entre usuarios |
-| JPA + H2/PostgreSQL | ORM con auto-schema | Simplifica persistencia |
-| Centralized error handling | Consistencia en respuestas | Contrato API predecible |
-| @PostConstruct seeding | Data consistency | Garantiza integridad en startup |
-| googleSubject as primary key | Inmutabilidad | OAuth2 best practice |
-| Explanation truncation (legacy) | Compatibilidad | Migración gradual de schema |
-| Logging en DEBUG | Debugging facilitado | Rastreo en desarrollo |
-
----
-
-## 15. TABLA DE RIESGOS Y MITIGACIONES
-
-| Riesgo | Probabilidad | Impacto | Mitigación |
-|--------|--------------|--------|-----------|
-| OpenAI API downtime | Media | Alto | AiRateLimitException + HTTP 429, cliente implementa retry |
-| Session affinity en load balancing | Media | Alto | Usar sticky sessions o shared session store (Spring Session) |
-| Data seeding lento en startup | Baja | Bajo | ~30ms para 30 equipos, aceptable |
-| Schema legacy (VARCHAR 255) | Baja | Bajo | Truncado de explanation, warning log |
-| CORS misconfiguration | Baja | Alto | Strict allowed-origins via config |
-| SQL injection | Muy baja | Crítico | JPA prepared statements + parameterized queries |
-| Broken authentication | Muy baja | Crítico | Spring Security OIDC + session validation |
-
----
-
-## 16. PRÓXIMOS PASOS RECOMENDADOS
+## 15. PRÓXIMOS PASOS RECOMENDADOS POR Arquitecto de Software (Automated)
 
 1. **Roles & Permissions (RBAC)**
    - Implementar @PreAuthorize con Role.ADMIN
@@ -1508,8 +1349,3 @@ export SPRING_PROFILES_ACTIVE=prod
    - MockMvc para controladores
 
 ---
-
-**Documento generado:** 2026-07-14  
-**Formato:** Markdown  
-**Versión:** 1.0  
-**Análisis realizado por:** Arquitecto de Software (Automated)
