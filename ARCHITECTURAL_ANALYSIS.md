@@ -71,9 +71,9 @@ Resultado log:
 "Match catalog sync complete: inserted=1, updated=2, removed=1, totalSamples=3"
 ```
 
-### 🧩 Explicación de diseño: clases y secuencia
+### 🧩 Explicación de diseño
 
-La sección 0 describe un flujo de bootstrap en el que:
+La siguente sección describe un flujo de bootstrap en el que:
 
 1. El archivo `src/main/resources/bootstrap/matches.json` actúa como fuente inicial de datos.
 2. Al arrancar la aplicación, el componente `MatchCatalogSeeder` lee ese JSON.
@@ -441,21 +441,29 @@ sequenceDiagram
 sequenceDiagram
   autonumber
   participant User as Usuario autenticado
-  participant Auth as AuthController
+  participant Controller as AuthController
   participant Service as AuthService
   participant Session as HttpSession
   participant Security as SecurityContextHolder
   participant Browser as Browser
 
-  User->>Auth: POST /api/auth/logout
-  Auth->>Service: logout()
-  Service->>Session: invalidate()
-  Service->>Security: clearContext()
-  Service-->>Browser: Set-Cookie JSESSIONID=; Max-Age=0
-  Service-->>Browser: Set-Cookie SESSION=; Max-Age=0
-  Service-->>Auth: logout completado
-  Auth-->>User: HTTP 200 { success: true, message: "Logged out successfully" }
+  User->>Controller: POST /api/auth/logout
+  Controller->>Service: logout()
+
+  alt existe sesión activa
+    Service->>Session: invalidate()
+    Service->>Security: clearContext()
+    Service-->>Browser: Set-Cookie JSESSIONID=; Max-Age=0; HttpOnly; Secure; SameSite=None
+    Service-->>Browser: Set-Cookie SESSION=; Max-Age=0; HttpOnly; Secure; SameSite=None
+    Service-->>Controller: Logout exitoso
+    Controller-->>User: HTTP 200 { success: true, message: "Logged out successfully" }
+  else no hay sesión activa
+    Service->>Security: clearContext()
+    Service-->>Controller: Sin sesión previa
+    Controller-->>User: HTTP 200 { success: true, message: "Logged out successfully" }
+  end
 ```
+
 
 ---
 
