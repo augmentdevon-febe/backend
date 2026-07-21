@@ -229,7 +229,7 @@ com.example.worldcuppredictor/
 └── infrastructure/                         # Capa de infraestructura
     ├── security/                          # Configuración de seguridad
     │   ├── SecurityConfig                 # Configuración de Spring Security
-    │   ├── CustomOidcUserService          # Servicio OIDC personalizado
+    │   ├── CustomOidcUserService          # Servicio OIDC ( Google OpenID Connect) personalizado
     │   ├── CorsConfig                     # Configuración CORS
     │   ├── AuthService                    # Servicios de autenticación
     │   ├── AuthRedirectSuccessHandler     # Handler de login exitoso
@@ -997,14 +997,10 @@ public class ServiceUnavailableException extends RuntimeException { ... }
 | GET | /api/auth/session | OidcUser | Info de sesión actual | `{"authenticated": true, "email": "...", "name": "...", "subject": "..."}` |
 | GET | /api/auth/me | OidcUser | Usuario logueado | `User { id, googleSubject, email, fullName, pictureUrl, role, ... }` |
 | POST | /api/auth/logout | OidcUser (opt) | Logout | `{"success": true, "message": "..."}` |
-| GET | /api/auth/logout | OidcUser (opt) | Logout (browser) | `{"success": true, "message": "..."}` |
-| POST | /api/auth/test-session | OidcUser | Test endpoint | TBD |
 | GET | /api/matches | OidcUser | Lista de partidos | `[{"homeTeam": "...", "awayTeam": "...", ...}]` |
-| GET | /api/teams | OidcUser | Lista de equipos | `[{"id": 1, "teamName": "France", ...}]` |
-| GET | /api/teams/{teamName} | OidcUser | Equipo específico | `{"id": 1, "teamName": "France", ...}` |
 | POST | /api/predictions | OidcUser | Crear predicción | `PredictionDto` |
-| GET | /api/predictions | OidcUser | Listar predicciones | `Page<Prediction>` |
-| GET | /api/predictions/{id} | OidcUser | Predicción específica | `Prediction` |
+
+
 
 ### 8.2 Request/Response Contracts
 
@@ -1111,45 +1107,6 @@ Cookie: JSESSIONID=...
 ]
 ```
 
-#### 8.2.3 GET /api/predictions (List Predictions)
-
-**Request:**
-```
-GET /api/predictions?page=0&size=10
-Cookie: JSESSIONID=...
-```
-
-**Response 200:**
-```json
-{
-  "content": [
-    {
-      "id": 123,
-      "user": {"id": 1, "email": "..."},
-      "homeTeam": "France",
-      "awayTeam": "Brazil",
-      "matchStage": "Final",
-      "predictedHomeGoals": 2,
-      "predictedAwayGoals": 1,
-      "result": "HOME_WIN",
-      "confidenceScore": 0.78,
-      "explanation": "...",
-      "requestedAt": "2026-07-14T10:30:00Z"
-    }
-  ],
-  "pageable": {
-    "pageNumber": 0,
-    "pageSize": 10,
-    "sort": {
-      "empty": false,
-      "unsorted": false,
-      "sorted": true
-    }
-  },
-  "totalElements": 5,
-  "totalPages": 1
-}
-```
 
 #### 8.2.4 GET /api/auth/session (Check Session)
 
@@ -1272,6 +1229,53 @@ CLIENTE BACKEND GOOGLE
  ├──────← HTTP 302 Location: http://localhost:4200
  │        Set-Cookie: JSESSIONID=abc123; Secure; HttpOnly; SameSite=None
  │
+```
+
+### 🔄 Diagrama de secuencia
+
+> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Browser as Cliente (Browser)
+  participant Backend as Backend API
+  participant Session as HttpSession
+  participant Spring as Spring Security OAuth2
+  participant Google as Google OAuth2
+  participant Oidc as CustomOidcUserService
+  participant Users as UserRepository
+  participant Success as AuthRedirectSuccessHandler
+  participant Frontend as Frontend App
+
+  Browser->>Backend: GET /api/auth/login?redirectUrl=http://localhost:4200
+  Backend->>Session: guardar redirectUrl
+  Backend-->>Browser: 302 /oauth2/authorization/google
+
+  Browser->>Spring: GET /oauth2/authorization/google
+  Spring-->>Browser: 302 accounts.google.com/o/oauth2/v2/auth
+
+  Browser->>Google: login + consentimiento
+  Google-->>Browser: 302 /login/oauth2/code/google?code=...&state=...
+
+  Browser->>Spring: GET /login/oauth2/code/google?code=...
+  Spring->>Google: exchange code por access/id token
+  Google-->>Spring: tokens OIDC
+
+  Spring->>Oidc: loadUser(idToken, accessToken)
+  Oidc->>Users: findByGoogleSubject(sub)
+
+  alt usuario no existe
+    Oidc->>Users: save(User role=USER)
+  else usuario existe
+    Oidc-->>Spring: reutilizar User existente
+  end
+
+  Spring->>Success: onAuthenticationSuccess()
+  Success->>Session: leer redirectUrl
+  Success-->>Browser: 302 redirectUrl + Set-Cookie JSESSIONID
+
+  Browser->>Frontend: navega a app con sesión activa
 ```
 
 ### 9.2 Tipos de Claims OIDC Google
@@ -1453,7 +1457,7 @@ export SPRING_PROFILES_ACTIVE=prod
 
 | Decisión | Impacto | Justificación |
 |----------|--------|---------------|
-| Spring Security OAuth2 (stateful) | Sessions HTTP con cookies | Integración nativa, seguridad OOB |
+| Spring Security OAuth2 (stateful) | Sessions HTTP con cookies | Integración nativa |
 | Ports & Adapters (AiPredictionClient) | Desacoplamiento de OpenAI | Extensibilidad, testabilidad |
 | Multi-strategy parser | Resiliencia a cambios API | Producción-ready |
 | Entity-level user isolation | Seguridad de datos | Evita data leaks entre usuarios |
@@ -1491,19 +1495,15 @@ export SPRING_PROFILES_ACTIVE=prod
    - Redis/Memcached para TeamStats y MatchCatalog
    - Reduce DB queries en listados frecuentes
 
-3. **Rate Limiting (local)**
+3. **Rate Limiting **
    - Bucket4j o Spring Cloud Gateway rate limiter
    - Protege backend de abuso
 
-4. **Metrics & Monitoring**
-   - Micrometer + Prometheus
-   - Dashboards en Grafana
-
-5. **Async Processing**
+4. **Async Processing**
    - RabbitMQ/Kafka para predicciones
    - Mejora UX (respuestas inmediatas)
 
-6. **Unit & Integration Tests**
+5. **Unit & Integration Tests**
    - Aumentar cobertura de tests
    - MockMvc para controladores
 

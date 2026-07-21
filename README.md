@@ -144,9 +144,6 @@ Error codes currently used:
 - `INTERNAL_ERROR` (500)
 - `SERVICE_UNAVAILABLE` (503)
 
-// If error pushing code chages to github then do the next:
-git credential-manager github login
-
 Note: for a deeper technical overview of the backend architecture
-and the bootstrap flow for `matches.json`, 
+and the bootstrap flow
 see [ARCHITECTURAL_ANALYSIS.md](./ARCHITECTURAL_ANALYSIS.md).
