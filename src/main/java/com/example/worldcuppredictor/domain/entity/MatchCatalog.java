@@ -31,6 +31,9 @@ public class MatchCatalog {
     @Column(nullable = false, length = 120)
     private String venue;
 
+    @Column(length = 100)
+    private String identifier;
+
     @Column(nullable = false)
     private OffsetDateTime matchDate;
 
@@ -75,6 +78,14 @@ public class MatchCatalog {
 
     public void setVenue(String venue) {
         this.venue = venue;
+    }
+
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
     }
 
     public OffsetDateTime getMatchDate() {

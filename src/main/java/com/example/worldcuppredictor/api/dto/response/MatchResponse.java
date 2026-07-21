@@ -3,6 +3,7 @@ package com.example.worldcuppredictor.api.dto.response;
 import java.time.OffsetDateTime;
 
 public class MatchResponse {
+    private String identifier;
     private String homeTeam;
     private String awayTeam;
     private String matchStage;
@@ -12,12 +13,21 @@ public class MatchResponse {
     public MatchResponse() {
     }
 
-    public MatchResponse(String homeTeam, String awayTeam, String matchStage, String venue, OffsetDateTime matchDate) {
+    public MatchResponse(String identifier, String homeTeam, String awayTeam, String matchStage, String venue, OffsetDateTime matchDate) {
+        this.identifier = identifier;
         this.homeTeam = homeTeam;
         this.awayTeam = awayTeam;
         this.matchStage = matchStage;
         this.venue = venue;
         this.matchDate = matchDate;
+    }
+
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    public void setIdentifier(String identifier) {
+        this.identifier = identifier;
     }
 
     public String getHomeTeam() {

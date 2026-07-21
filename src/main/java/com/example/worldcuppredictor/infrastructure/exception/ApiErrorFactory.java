@@ -23,6 +23,7 @@ public final class ApiErrorFactory {
 
     public static ApiErrorResponse fromStatus(HttpStatus status, String path) {
         return switch (status) {
+            case BAD_REQUEST -> build(ErrorCode.INTERNAL_ERROR, "Invalid request payload.", path);
             case UNAUTHORIZED -> build(ErrorCode.UNAUTHENTICATED, "Authentication required.", path);
             case FORBIDDEN -> build(ErrorCode.FORBIDDEN, "You do not have access to this resource.", path);
             case TOO_MANY_REQUESTS -> build(ErrorCode.RATE_LIMITED, "Too many requests. Try again later.", path);

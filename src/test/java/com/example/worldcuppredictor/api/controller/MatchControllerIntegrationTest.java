@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,10 +31,8 @@ class MatchControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].homeTeam").value("Mexico"))
-                .andExpect(jsonPath("$[0].awayTeam").value("South Africa"))
-                .andExpect(jsonPath("$[0].matchStage").value("Group A"))
-                .andExpect(jsonPath("$[0].venue").value("Estadio Banorte"))
+                .andExpect(jsonPath("$[0].identifier").value("liga_mx_invierno_2026"))
+                .andExpect(jsonPath("$[0].identifier").isString())
                 .andExpect(jsonPath("$[0].homeTeam").isString())
                 .andExpect(jsonPath("$[0].awayTeam").isString())
                 .andExpect(jsonPath("$[0].matchStage").isString())
@@ -57,6 +56,35 @@ class MatchControllerIntegrationTest {
     }
 
     @Test
+    void postMatchesReturnsTopLevelArrayWhenAuthenticated() throws Exception {
+        String body = """
+                {
+                  "identifier": "liga_mx_invierno_2026"
+                }
+                """;
+
+        mockMvc.perform(post("/api/matches")
+                        .with(user("tester"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].identifier").value("liga_mx_invierno_2026"));
+    }
+
+    @Test
+    void postMatchesReturns400WhenIdentifierMissing() throws Exception {
+        String body = "{}";
+
+        mockMvc.perform(post("/api/matches")
+                        .with(user("tester"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void getMatchesReturnsStrict401ErrorWhenUnauthenticated() throws Exception {
         mockMvc.perform(get("/api/matches"))
                 .andExpect(status().isUnauthorized())
@@ -67,4 +95,24 @@ class MatchControllerIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/matches"))
                 .andExpect(jsonPath("$.timestamp").isString());
     }
+
+        @Test
+        void postMatchesReturnsStrict401ErrorWhenUnauthenticated() throws Exception {
+                String body = """
+                                {
+                                    "identifier": "liga_mx_invierno_2026"
+                                }
+                                """;
+
+                mockMvc.perform(post("/api/matches")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(body))
+                                .andExpect(status().isUnauthorized())
+                                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                                .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"))
+                                .andExpect(jsonPath("$.error.message").value("Authentication required."))
+                                .andExpect(jsonPath("$.error.details").isArray())
+                                .andExpect(jsonPath("$.path").value("/api/matches"))
+                                .andExpect(jsonPath("$.timestamp").isString());
+        }
 }
