@@ -309,6 +309,50 @@ com.example.worldcuppredictor/
         Cliente redirigido a frontend con JSESSIONID en cookie
 ```
 
+### 🔄 Diagrama de secuencia
+
+> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant User as Usuario
+  participant Browser as Browser
+  participant Auth as AuthController
+  participant Redirect as AuthRedirectService
+  participant Spring as Spring Security OAuth2
+  participant Google as Google OAuth2
+  participant Oidc as CustomOidcUserService
+  participant Users as UserRepository
+  participant Success as AuthRedirectSuccessHandler
+  participant Front as Frontend
+
+  User->>Browser: Inicia login
+  Browser->>Auth: GET /api/auth/login?redirectUrl=...
+  Auth->>Redirect: storeRedirectInSession()
+  Auth-->>Browser: 302 /oauth2/authorization/google
+
+  Browser->>Spring: GET /oauth2/authorization/google
+  Spring-->>Browser: 302 Google OAuth consent
+  Browser->>Google: autenticación y consentimiento
+  Google-->>Browser: 302 /login/oauth2/code/google?code=...&state=...
+
+  Browser->>Spring: callback OAuth2
+  Spring->>Oidc: loadUser()
+  Oidc->>Users: findByGoogleSubject(sub)
+
+  alt user existe
+    Oidc->>Users: update perfil + lastLoginAt
+  else user no existe
+    Oidc->>Users: save nuevo User(role=USER)
+  end
+
+  Spring->>Success: onAuthenticationSuccess()
+  Success->>Redirect: consumeRedirectFromSession()
+  Success-->>Browser: 302 storedTarget + Set-Cookie JSESSIONID
+  Browser->>Front: redirige a frontend autenticado
+```
+
 **Puntos clave:**
 - Las variables de redirección se almacenan en la sesión HTTP
 - El googleSubject es la clave única primaria de lookup
@@ -376,6 +420,58 @@ com.example.worldcuppredictor/
     └─→ HTTP 200 con PredictionDto
 ```
 
+### 🔄 Diagrama de secuencia
+
+> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant User as Usuario autenticado
+  participant Controller as PredictionController
+  participant UserRepo as UserRepository
+  participant Service as PredictionService
+  participant TeamRepo as TeamStatsRepository
+  participant Prompt as PredictionPromptBuilder
+  participant AI as OpenAiPredictionClient
+  participant Parser as PredictionResponseParser
+  participant PredRepo as PredictionRepository
+  participant Errors as GlobalExceptionHandler
+
+  User->>Controller: POST /api/predictions
+  Controller->>UserRepo: findByGoogleSubject(sub)
+  Controller->>Service: createPrediction(request, user)
+
+  Service->>Service: validar request
+  Service->>TeamRepo: findAll()
+  TeamRepo-->>Service: TeamStats[]
+  Service->>Prompt: build(request, teamStats)
+  Prompt-->>Service: prompt estructurado
+
+  Service->>AI: predict(prompt)
+  AI-->>Service: raw AI response
+
+  Service->>Parser: parse(raw)
+  Parser-->>Service: campos normalizados
+  Service->>Service: truncar explanation (<=255)
+
+  Service->>PredRepo: save(prediction)
+  PredRepo-->>Service: prediction persistida
+  Service-->>Controller: PredictionDto
+  Controller-->>User: HTTP 200 PredictionDto
+
+  alt AiRateLimitException
+    Service-->>Errors: propaga excepción
+    Errors-->>User: HTTP 429
+  else ServiceUnavailableException
+    Service-->>Errors: propaga excepción
+    Errors-->>User: HTTP 503
+  else Exception
+    Service-->>Errors: propaga excepción
+    Errors-->>User: HTTP 500 ApiErrorResponse
+  end
+```
+
 **Tiempos y características:**
 - Validación en @Valid PredictionRequest (constraint violations)
 - Rate limiting delegado a OpenAI (429 triggering AiRateLimitException)
@@ -401,28 +497,28 @@ com.example.worldcuppredictor/
     │       └─→ HTTP 200 { "success": true, "message": "Logged out successfully" }
 ```
 
-### 2.4 FLUJO #4: Inicialización de Datos (Nombre: "Bootstrap-Data-Synchronization-Flow")
+### 🔄 Diagrama de secuencia
 
-```
-┌─ Aplicación Inicia ─┐
-    │
-    ├─→ DotenvEnvironmentPostProcessor
-    │   ├─ Lee .env si existe
-    │   └─ Carga variables de entorno
-    │
-    ├─→ DataSeeder @PostConstruct (Flujo: "TeamStats-Sync-Flow")
-    │   ├─ Carga 30+ equipos de World Cup 2026
-    │   ├─ Compara con BD existente
-    │   ├─ Inserta, actualiza o elimina según sea necesario
-    │   └─ Loguea: TeamStats sync complete: inserted=X, updated=Y, removed=Z
-    │
-    ├─→ MatchCatalogSeeder @PostConstruct (Flujo: "MatchCatalog-Sync-Flow")
-    │   ├─ Lee bootstrap/matches.json
-    │   ├─ Parsea con Jackson
-    │   ├─ Sincroniza con BD usando matchKey (home|away|stage|venue|date)
-    │   └─ Loguea: Match catalog sync complete
-    │
-    └─→ Aplicación lista para recibir requests
+> Para visualizar este diagrama automáticamente en la vista previa de Markdown de VS Code, abra la vista previa (Ctrl+Shift+V) y asegúrese de tener habilitado el soporte de Mermaid, por ejemplo con la extensión Markdown Preview Mermaid Support o Markdown Preview Enhanced. Si el renderizado nativo no está disponible, también puede abrirlo en [Mermaid Live](https://mermaid.live/edit).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant User as Usuario autenticado
+  participant Auth as AuthController
+  participant Service as AuthService
+  participant Session as HttpSession
+  participant Security as SecurityContextHolder
+  participant Browser as Browser
+
+  User->>Auth: POST /api/auth/logout
+  Auth->>Service: logout()
+  Service->>Session: invalidate()
+  Service->>Security: clearContext()
+  Service-->>Browser: Set-Cookie JSESSIONID=; Max-Age=0
+  Service-->>Browser: Set-Cookie SESSION=; Max-Age=0
+  Service-->>Auth: logout completado
+  Auth-->>User: HTTP 200 { success: true, message: "Logged out successfully" }
 ```
 
 ---
@@ -1278,25 +1374,6 @@ sequenceDiagram
   Browser->>Frontend: navega a app con sesión activa
 ```
 
-### 9.2 Tipos de Claims OIDC Google
-
-```
-{
-  "sub": "108691691000...000",        # googleSubject (UNIQUE PER ACCOUNT)
-  "email": "user@example.com",
-  "email_verified": true,
-  "name": "John Doe",
-  "picture": "https://...",
-  "given_name": "John",
-  "family_name": "Doe",
-  "locale": "en",
-  "iss": "https://accounts.google.com",
-  "aud": "...",
-  "iat": 1234567890,
-  "exp": 1234571490
-}
-```
-
 ### 9.3 Session Management
 
 **Almacenamiento:** H2/PostgreSQL DB (Default Spring Session)
@@ -1328,14 +1405,7 @@ JSESSIONID=ABC123DEF456;
 GET  /api/health                              → 200 OK
 GET  /api/auth/login                          → 302 Redirect a Google
 GET  /api/auth/session                        → 401 (si no auth)
-GET  /api/auth/logout                         → 200 OK (sin efecto)
-POST /api/auth/logout                         → 200 OK (sin efecto)
-GET  /oauth2/**                                → OAuth2 flow
-GET  /login/oauth2/**                          → OAuth2 callback
-GET  /h2-console/**                            → H2 console
-GET  /v3/api-docs/**                           → OpenAPI docs
-GET  /swagger-ui/**                            → Swagger UI
-GET  /swagger-ui.html                          → Swagger UI
+POST /api/auth/logout                         → 200 OK
 GET  /error                                    → Error handler
 ```
 
@@ -1344,20 +1414,12 @@ GET  /error                                    → Error handler
 ```
 GET  /api/auth/session                        → 200 OK (cuando auth)
 GET  /api/auth/me                              → 200 User
-POST /api/auth/test-session                    → TBD
-GET  /api/teams                                → 200 List<TeamStats>
-GET  /api/teams/{teamName}                     → 200 TeamStats
 GET  /api/matches                              → 200 List<MatchResponse>
 POST /api/predictions                          → 200 PredictionDto (validated)
-GET  /api/predictions                          → 200 Page<Prediction>
-GET  /api/predictions/{id}                     → 200 Prediction (propiedad de user)
                                                → 404 (si no existe o pertenece a otro)
 ```
 
 ### 10.3 Autorización a Nivel de Dominio
-
-**User Isolation:**
-- Las predicciones `GET /api/predictions/{id}` solo retornan si `prediction.user.id == authenticatedUser.id`
 - No hay endpoints de administración todavía (Role.ADMIN no usado)
 
 ---
@@ -1388,17 +1450,13 @@ GET  /api/predictions/{id}                     → 200 Prediction (propiedad de 
    ├─ Sincroniza MatchCatalog
    └─ Loguea resultados
 
-5. Netty/Tomcat Server Listen
+5. Server Listen
    └─ :8080 (default)
 
 6. Aplicación lista para requests
 ```
 
 ### 11.2 Datos de Bootstrap
-
-**TeamStats (30+ equipos):**
-- Incluye ranking FIFA, confederation, scores normalizados
-- Actualizado en cada startup via `buildWorldCup2026Pool()`
 
 **MatchCatalog:**
 - Cargado desde `bootstrap/matches.json` en resources
@@ -1480,7 +1538,6 @@ export SPRING_PROFILES_ACTIVE=prod
 | Schema legacy (VARCHAR 255) | Baja | Bajo | Truncado de explanation, warning log |
 | CORS misconfiguration | Baja | Alto | Strict allowed-origins via config |
 | SQL injection | Muy baja | Crítico | JPA prepared statements + parameterized queries |
-| CSRF en API | Baja | Bajo | Deshabilitado en `/api/**` (REST clients) |
 | Broken authentication | Muy baja | Crítico | Spring Security OIDC + session validation |
 
 ---
