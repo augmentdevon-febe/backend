@@ -1,6 +1,11 @@
 package com.example.worldcuppredictor.infrastructure.ai;
 
 import com.example.worldcuppredictor.domain.entity.TeamStats;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.ClassPathResource;
+
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -12,6 +17,11 @@ import java.util.Map;
  * can ground its prediction in real data rather than relying solely on training knowledge.
  */
 public class PredictionPromptBuilder {
+    private static final String MATCHES_JSON_PATH = "bootstrap/matches.json";
+    private static final String DEFAULT_TOURNAMENT_PROMPT_IDENTIFIER = "FIFA";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static volatile String cachedTournamentPromptIdentifier;
+
     /**
      * Assembles a structured prediction prompt for the given match.
      *
@@ -26,9 +36,10 @@ public class PredictionPromptBuilder {
     public static String build(String home, String away, Map<String, TeamStats> stats, String stage, String venue, String date) {
         TeamStats h = stats.get(home.toLowerCase());
         TeamStats a = stats.get(away.toLowerCase());
+        String tournamentPromptIdentifier = resolveTournamentPromptIdentifier();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("You are an expert in FIFA tournaments and statistics and probabilistic football analyst. Return a STRICT JSON with fields: predictedHomeGoals (int), predictedAwayGoals (int), result (HOME_WIN|AWAY_WIN|DRAW), explanation (string).\n");
+        sb.append("You are an expert in ").append(tournamentPromptIdentifier).append(" tournament and statistics and probabilistic football analyst. Return a STRICT JSON with fields: predictedHomeGoals (int), predictedAwayGoals (int), result (HOME_WIN|AWAY_WIN|DRAW), explanation (string).\n");
         sb.append("Match info:\n");
         sb.append("home: ").append(home).append("\n");
         sb.append("away: ").append(away).append("\n");
@@ -43,5 +54,37 @@ public class PredictionPromptBuilder {
         sb.append("Return only JSON. Do not add commentary.");
 
         return sb.toString();
+    }
+
+    private static String resolveTournamentPromptIdentifier() {
+        String cached = cachedTournamentPromptIdentifier;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (PredictionPromptBuilder.class) {
+            cached = cachedTournamentPromptIdentifier;
+            if (cached != null) {
+                return cached;
+            }
+            cachedTournamentPromptIdentifier = loadTournamentPromptIdentifier();
+            return cachedTournamentPromptIdentifier;
+        }
+    }
+
+    private static String loadTournamentPromptIdentifier() {
+        try {
+            ClassPathResource resource = new ClassPathResource(MATCHES_JSON_PATH);
+            JsonNode root = OBJECT_MAPPER.readTree(resource.getInputStream());
+            JsonNode node = root.path("tournament_name_identifier_in_prompt");
+            if (node.isTextual()) {
+                String value = node.asText().trim();
+                if (!value.isEmpty()) {
+                    return value;
+                }
+            }
+        } catch (IOException ignored) {
+            // Fall back to the legacy default if catalog metadata cannot be loaded.
+        }
+        return DEFAULT_TOURNAMENT_PROMPT_IDENTIFIER;
     }
 }

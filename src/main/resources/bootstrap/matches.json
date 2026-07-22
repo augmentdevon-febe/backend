@@ -1,5 +1,6 @@
 {
   "identifier": "liga_mx_invierno_2026",
+  "tournament_name_identifier_in_prompt": "Liga MX Invierno 2026",
   "matches": [
     {
       "homeTeam": "Necaxa",
