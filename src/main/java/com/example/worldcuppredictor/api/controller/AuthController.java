@@ -53,6 +53,21 @@ public class AuthController {
         response.sendRedirect("/oauth2/authorization/google");
     }
 
+    @GetMapping("/switch-account")
+    public void switchAccount(@RequestParam(name = "redirect_uri", required = false) String redirectUri,
+                              @RequestParam(name = "redirectUrl", required = false) String redirectUrl,
+                              @RequestParam(name = "returnUrl", required = false) String returnUrl,
+                              HttpServletRequest request,
+                              HttpServletResponse response,
+                              Authentication authentication) throws IOException {
+        String redirectTarget = authRedirectService.resolveFromParams(redirectUri, redirectUrl, returnUrl);
+
+        authService.logout(request, response, authentication);
+        authRedirectService.storeRedirectInSession(request.getSession(true), redirectTarget);
+
+        response.sendRedirect("/oauth2/authorization/google");
+    }
+
     @GetMapping("/session")
     public ResponseEntity<Map<String, Object>> session(@AuthenticationPrincipal OidcUser principal) {
         if (principal == null) {

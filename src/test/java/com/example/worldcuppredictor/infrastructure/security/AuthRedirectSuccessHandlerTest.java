@@ -54,4 +54,18 @@ class AuthRedirectSuccessHandlerTest {
         assertEquals(AuthRedirectService.FALLBACK_REDIRECT, response.getRedirectedUrl());
         assertNull(session.getAttribute(AuthRedirectService.POST_AUTH_REDIRECT_SESSION_KEY));
     }
+
+    @Test
+    void onAuthenticationSuccessRedirectsToPredictPage() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        HttpSession session = request.getSession(true);
+        session.setAttribute(AuthRedirectService.POST_AUTH_REDIRECT_SESSION_KEY, "http://localhost:4200/predict");
+        Authentication authentication = new UsernamePasswordAuthenticationToken("tester@example.com", "n/a");
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertEquals("http://localhost:4200/predict", response.getRedirectedUrl());
+        assertNull(session.getAttribute(AuthRedirectService.POST_AUTH_REDIRECT_SESSION_KEY));
+    }
 }
