@@ -1,6 +1,7 @@
 package com.example.worldcuppredictor.infrastructure.exception;
 
 public enum ErrorCode {
+    BAD_REQUEST,
     UNAUTHENTICATED,
     FORBIDDEN,
     RATE_LIMITED,

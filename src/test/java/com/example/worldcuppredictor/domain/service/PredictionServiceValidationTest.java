@@ -7,6 +7,7 @@ import com.example.worldcuppredictor.domain.entity.User;
 import com.example.worldcuppredictor.domain.repository.PredictionRepository;
 import com.example.worldcuppredictor.domain.repository.TeamStatsRepository;
 import com.example.worldcuppredictor.infrastructure.ai.AiPredictionClient;
+import com.example.worldcuppredictor.infrastructure.exception.ServiceUnavailableException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -122,6 +123,24 @@ public class PredictionServiceValidationTest {
         assertEquals(ResultType.HOME_WIN, dto.getResult());
         assertEquals("test", dto.getExplanation());
         assertEquals("openai", dto.getProviderName());
+    }
+
+    @Test
+    void createPredictionWrapsProviderFailuresAsServiceUnavailable() throws Exception {
+        PredictionRequest request = new PredictionRequest();
+        request.setHomeTeam("Brazil");
+        request.setAwayTeam("Argentina");
+
+        User user = new User();
+        user.setGoogleSubject("sub");
+        user.setEmail("test@example.com");
+
+        when(aiClient.predict(anyString(), any())).thenThrow(new IllegalStateException("OpenAI prediction failed"));
+
+        ServiceUnavailableException ex = assertThrows(ServiceUnavailableException.class,
+                () -> predictionService.createPrediction(user, request));
+
+        assertEquals("Prediction provider unavailable", ex.getMessage());
     }
 
     @Test

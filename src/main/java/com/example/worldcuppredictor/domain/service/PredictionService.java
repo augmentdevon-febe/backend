@@ -11,6 +11,7 @@ import com.example.worldcuppredictor.domain.repository.TeamStatsRepository;
 import com.example.worldcuppredictor.infrastructure.ai.AiPredictionClient;
 import com.example.worldcuppredictor.infrastructure.ai.PredictionPromptBuilder;
 import com.example.worldcuppredictor.infrastructure.ai.PredictionResponseParser;
+import com.example.worldcuppredictor.infrastructure.exception.ServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -94,11 +95,17 @@ public class PredictionService {
             }
         }
 
-        String prompt = PredictionPromptBuilder.build(req.getHomeTeam(), req.getAwayTeam(), stats, req.getMatchStage(), req.getVenue(), req.getMatchDate());
+        ExternalAiRawResponse raw;
+        PredictionDto dto;
+        try {
+            String prompt = PredictionPromptBuilder.build(req.getHomeTeam(), req.getAwayTeam(), stats, req.getMatchStage(), req.getVenue(), req.getMatchDate());
+            raw = aiClient.predict(prompt, Map.of());
+            dto = PredictionResponseParser.parse(raw);
+        } catch (IllegalStateException | IllegalArgumentException ex) {
+            log.error("Prediction provider failed for {} vs {}", req.getHomeTeam(), req.getAwayTeam(), ex);
+            throw new ServiceUnavailableException("Prediction provider unavailable", ex);
+        }
 
-        ExternalAiRawResponse raw = aiClient.predict(prompt, Map.of());
-
-        var dto = PredictionResponseParser.parse(raw);
         dto.setHomeTeam(req.getHomeTeam());
         dto.setAwayTeam(req.getAwayTeam());
         dto.setProviderName(raw.getProvider());

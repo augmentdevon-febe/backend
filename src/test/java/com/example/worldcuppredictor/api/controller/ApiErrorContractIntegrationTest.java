@@ -52,6 +52,18 @@ class ApiErrorContractIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/test/admin-only"));
     }
 
+    @Test
+    void illegalArgumentReturnsStrict400Contract() throws Exception {
+        mockMvc.perform(get("/api/test/bad-request").with(user("tester")))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"))
+                .andExpect(jsonPath("$.error.message").value("Invalid request payload."))
+                .andExpect(jsonPath("$.error.details").isArray())
+                .andExpect(jsonPath("$.timestamp").isString())
+                .andExpect(jsonPath("$.path").value("/api/test/bad-request"));
+    }
+
     @TestConfiguration
     @RestController
     @RequestMapping("/api/test")
@@ -59,6 +71,11 @@ class ApiErrorContractIntegrationTest {
         @GetMapping("/service-unavailable")
         public String serviceUnavailable() {
             throw new ServiceUnavailableException("Simulated outage");
+        }
+
+        @GetMapping("/bad-request")
+        public String badRequest() {
+            throw new IllegalArgumentException("Simulated bad request");
         }
 
         @GetMapping("/admin-only")

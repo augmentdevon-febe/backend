@@ -75,7 +75,7 @@ public class PredictionPromptBuilder {
         try {
             ClassPathResource resource = new ClassPathResource(MATCHES_JSON_PATH);
             JsonNode root = OBJECT_MAPPER.readTree(resource.getInputStream());
-            JsonNode node = root.path("tournament_name_identifier_in_prompt");
+            JsonNode node = root.path("tournament_name_prompt_identifier");
             if (node.isTextual()) {
                 String value = node.asText().trim();
                 if (!value.isEmpty()) {

@@ -29,6 +29,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(status).body(r);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadRequest(IllegalArgumentException ex, HttpServletRequest req) {
+        ApiErrorResponse r = ApiErrorFactory.fromStatus(HttpStatus.BAD_REQUEST, req.getRequestURI());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(r);
+    }
+
     /** Handles OpenAI rate-limit errors so callers receive 429 instead of 500. */
     @ExceptionHandler(AiRateLimitException.class)
     public ResponseEntity<ApiErrorResponse> handleRateLimit(AiRateLimitException ex, HttpServletRequest req) {
