@@ -995,16 +995,9 @@ public class ServiceUnavailableException extends RuntimeException { ... }
 | GET | /api/health | None (public) | Health check | `{"status": "UP", "time": "..."}` |
 | GET | /api/auth/login | OAuth2 flow | Inicia login Google | Redirect 302 |
 | GET | /api/auth/session | OidcUser | Info de sesión actual | `{"authenticated": true, "email": "...", "name": "...", "subject": "..."}` |
-| GET | /api/auth/me | OidcUser | Usuario logueado | `User { id, googleSubject, email, fullName, pictureUrl, role, ... }` |
-| POST | /api/auth/logout | OidcUser (opt) | Logout | `{"success": true, "message": "..."}` |
 | GET | /api/auth/logout | OidcUser (opt) | Logout (browser) | `{"success": true, "message": "..."}` |
-| POST | /api/auth/test-session | OidcUser | Test endpoint | TBD |
 | GET | /api/matches | OidcUser | Lista de partidos | `[{"homeTeam": "...", "awayTeam": "...", ...}]` |
-| GET | /api/teams | OidcUser | Lista de equipos | `[{"id": 1, "teamName": "France", ...}]` |
-| GET | /api/teams/{teamName} | OidcUser | Equipo específico | `{"id": 1, "teamName": "France", ...}` |
 | POST | /api/predictions | OidcUser | Crear predicción | `PredictionDto` |
-| GET | /api/predictions | OidcUser | Listar predicciones | `Page<Prediction>` |
-| GET | /api/predictions/{id} | OidcUser | Predicción específica | `Prediction` |
 
 ### 8.2 Request/Response Contracts
 
@@ -1111,47 +1104,8 @@ Cookie: JSESSIONID=...
 ]
 ```
 
-#### 8.2.3 GET /api/predictions (List Predictions)
 
-**Request:**
-```
-GET /api/predictions?page=0&size=10
-Cookie: JSESSIONID=...
-```
-
-**Response 200:**
-```json
-{
-  "content": [
-    {
-      "id": 123,
-      "user": {"id": 1, "email": "..."},
-      "homeTeam": "France",
-      "awayTeam": "Brazil",
-      "matchStage": "Final",
-      "predictedHomeGoals": 2,
-      "predictedAwayGoals": 1,
-      "result": "HOME_WIN",
-      "confidenceScore": 0.78,
-      "explanation": "...",
-      "requestedAt": "2026-07-14T10:30:00Z"
-    }
-  ],
-  "pageable": {
-    "pageNumber": 0,
-    "pageSize": 10,
-    "sort": {
-      "empty": false,
-      "unsorted": false,
-      "sorted": true
-    }
-  },
-  "totalElements": 5,
-  "totalPages": 1
-}
-```
-
-#### 8.2.4 GET /api/auth/session (Check Session)
+#### 8.2.3 GET /api/auth/session (Check Session)
 
 **Request:**
 ```
@@ -1339,14 +1293,8 @@ GET  /error                                    → Error handler
 
 ```
 GET  /api/auth/session                        → 200 OK (cuando auth)
-GET  /api/auth/me                              → 200 User
-POST /api/auth/test-session                    → TBD
-GET  /api/teams                                → 200 List<TeamStats>
-GET  /api/teams/{teamName}                     → 200 TeamStats
 GET  /api/matches                              → 200 List<MatchResponse>
 POST /api/predictions                          → 200 PredictionDto (validated)
-GET  /api/predictions                          → 200 Page<Prediction>
-GET  /api/predictions/{id}                     → 200 Prediction (propiedad de user)
                                                → 404 (si no existe o pertenece a otro)
 ```
 
@@ -1463,6 +1411,86 @@ export SPRING_PROFILES_ACTIVE=prod
 | googleSubject as primary key | Inmutabilidad | OAuth2 best practice |
 | Explanation truncation (legacy) | Compatibilidad | Migración gradual de schema |
 | Logging en DEBUG | Debugging facilitado | Rastreo en desarrollo |
+
+### 14.1 Spring Security OAuth2 (stateful)
+
+Se eligió un flujo stateful con sesiones HTTP porque el backend actúa como punto central de autenticación y necesita conservar el contexto de redirección, el estado del inicio de sesión y la sesión del usuario entre el arranque del flujo OAuth2 y el callback de Google. En este diseño, Spring Security administra la autenticación, Spring almacena la sesión en `JSESSIONID` y el frontend solo consume una API protegida por cookies.
+
+Este enfoque reduce la complejidad operativa frente a un esquema JWT propio, ya que no hace falta implementar emisión, renovación, revocación ni almacenamiento de tokens de aplicación. También se alinea mejor con el flujo actual del proyecto, donde el inicio de sesión comienza en el backend y termina con una redirección al frontend después de validar al usuario.
+
+La desventaja es que la aplicación depende de cookies y de la existencia de una sesión compartida o de sticky sessions si el despliegue escala horizontalmente. Aun así, para el alcance actual del sistema, el intercambio es favorable porque simplifica la autenticación, el cierre de sesión y el mantenimiento del estado del usuario.
+
+### 14.2 Ports & Adapters (AiPredictionClient)
+
+Se introdujo `AiPredictionClient` como un bussines port y `OpenAiPredictionClient` como un adaptador técnico para aislar la lógica de predicción del proveedor externo. Esto evita que `PredictionService` conozca detalles de HTTP, encabezados, endpoints o formatos concretos de OpenAI.
+
+La ventaja principal es la extensibilidad: si mañana se agrega Anthropic, un modelo local o cualquier otro proveedor, la lógica del dominio no necesita cambiar; solo se agrega otra implementación del puerto. También mejora la testabilidad, porque el servicio de predicciones puede validarse con mocks o stubs sin depender de la red.
+
+Arquitectónicamente, esta separación reduce el acoplamiento y deja claro qué parte pertenece al negocio y cuál a la infraestructura. Es una decisión útil cuando la integración externa puede variar con frecuencia o fallar por razones ajenas al dominio.
+
+### 14.3 Multi-strategy parser
+
+El parser de respuestas de IA usa varias estrategias porque las APIs generativas no siempre devuelven un formato estable o uniforme. En producción, la respuesta puede venir envuelta en estructuras diferentes, incluir texto libre o contener el JSON relevante anidado dentro de nodos de salida.
+
+La estrategia múltiple permite procesar respuestas directas, envoltorios conocidos y también texto no estructurado que contenga fragmentos JSON. Eso hace que el sistema sea más tolerante a cambios menores del proveedor y reduce el riesgo de interrumpir la generación de predicciones por una variación del payload.
+
+Esta decisión prioriza la robustez operativa sobre la simplicidad absoluta. En un sistema que depende de un servicio externo no totalmente controlado, ese intercambio es razonable porque evita que pequeñas diferencias de formato se conviertan en fallos de negocio.
+
+### 14.4 Entity-level user isolation
+
+El aislamiento a nivel de entidad significa que cada predicción se asocia explícitamente con un usuario y que las operaciones posteriores verifican esa relación antes de exponer datos. Esto evita que un usuario autenticado vea predicciones de otro usuario aunque conozca un identificador válido.
+
+Desde el punto de vista de seguridad, esta es una barrera importante porque la autenticación por sí sola no garantiza autorización. El sistema no asume que iniciar sesión basta para acceder a cualquier recurso; también valida la pertenencia del recurso al usuario autenticado.
+
+La consecuencia es una protección más fuerte contra filtraciones accidentales de datos y una base más sólida para futuras reglas de permisos, como roles administrativos o vistas compartidas.
+
+### 14.5 JPA + H2/PostgreSQL
+
+Se usa JPA para simplificar la persistencia y mantener un modelo de datos orientado a entidades de negocio en lugar de SQL manual disperso. H2 facilita el arranque local y las pruebas, mientras que PostgreSQL cubre el escenario de producción con mayor robustez y compatibilidad operativa.
+
+La principal ventaja es la productividad: el esquema puede evolucionar con menos fricción y los repositorios estándar cubren la mayoría de los casos de uso. Para un backend con varias entidades y relaciones, esta elección reduce la cantidad de código repetitivo necesario para consultas CRUD comunes.
+
+El costo es que parte del comportamiento queda mediado por el ORM y hay que vigilar detalles como el DDL automático, los tipos de datos y las diferencias entre motores. Aun así, el balance es positivo porque el sistema necesita velocidad de desarrollo y una persistencia relativamente convencional.
+
+### 14.6 Centralized error handling
+
+El manejo centralizado de errores permite que la API responda con un contrato uniforme, sin que cada controlador construya respuestas de error de forma distinta. Eso mejora la experiencia del frontend y simplifica el diagnóstico, porque siempre se devuelve una estructura consistente con código, mensaje, timestamp y ruta.
+
+También ayuda a separar la lógica de negocio de la lógica de presentación de errores. Los servicios y controladores pueden lanzar excepciones específicas, y `GlobalExceptionHandler` decide cómo traducirlas a HTTP.
+
+Esta decisión reduce la duplicación y hace más predecible el comportamiento de la API bajo fallos. Es especialmente útil cuando la aplicación integra dependencias externas, validaciones de entrada y reglas de dominio que pueden fallar por motivos distintos.
+
+### 14.7 @PostConstruct seeding
+
+El seeding en `@PostConstruct` se usa para garantizar que el sistema arranque con datos mínimos y coherentes sin depender de scripts manuales o pasos de despliegue adicionales. En este proyecto, eso es importante para `TeamStats` y `MatchCatalog`, porque el frontend y la lógica de predicción necesitan información disponible desde la primera solicitud.
+
+La ventaja es la consistencia: cada vez que la aplicación inicia, el catálogo se sincroniza con el estado esperado y se corrigen diferencias entre el archivo fuente y la base de datos. Además, el proceso queda cerca del ciclo de vida de la aplicación y resulta fácil de entender y depurar.
+
+El principal riesgo es que el arranque pueda volverse más lento si el volumen de datos crece. Por eso esta estrategia funciona bien mientras el conjunto de datos sea moderado; si el sistema escala mucho, podría migrarse a jobs de bootstrap más especializados.
+
+### 14.8 googleSubject as primary key
+
+Usar `googleSubject` como clave lógica principal permite identificar al usuario de forma estable e inmutable dentro del proveedor de OAuth2. A diferencia del correo electrónico, el subject no depende de que el usuario cambie su dirección de correo ni de que Google modifique algún atributo visible del perfil.
+
+Esto hace que el enlace entre la cuenta de Google y el registro local sea más confiable a largo plazo. También reduce la posibilidad de colisiones o reasignaciones incorrectas cuando el correo se usa como respaldo temporal durante migraciones o escenarios heredados.
+
+La decisión sigue la práctica habitual en integraciones OIDC: la identidad externa canónica es el subject y el correo se usa como atributo secundario o de conveniencia. Eso mejora la estabilidad del modelo de usuario y evita acoplar la identidad a un dato mutable.
+
+### 14.9 Explanation truncation (legacy)
+
+El truncado de `explanation` se mantiene para compatibilidad con un esquema heredado que puede no aceptar textos largos. Aunque funcionalmente sería preferible almacenar el texto completo, este ajuste evita errores de inserción en producción mientras se migra la columna o se estabiliza el contrato de persistencia.
+
+Arquitectónicamente, es una medida de contención: prioriza que la predicción se persista correctamente antes que preservar una explicación extensa. El warning en los logs sirve como señal operativa para detectar cuándo el límite está impactando y cuándo conviene resolver la deuda técnica del esquema.
+
+Esta decisión es temporal y defensiva. Su valor está en permitir una evolución gradual sin interrumpir el funcionamiento del sistema mientras exista compatibilidad con una estructura de base de datos antigua.
+
+### 14.10 Logging en DEBUG
+
+El logging en `DEBUG` durante el desarrollo facilita rastrear decisiones internas, flujos de autenticación, sincronización de datos y llamadas a servicios externos. En un backend con OAuth2, IA y seeding de datos, la observabilidad temprana ahorra tiempo al diagnosticar problemas de integración.
+
+La elección de `DEBUG` para el paquete de la aplicación permite ver el detalle necesario sin saturar por completo la salida del sistema. En producción, ese nivel puede rebajarse o ajustarse por componente para mantener el equilibrio entre observabilidad y ruido.
+
+En resumen, esta decisión está orientada a acelerar el ciclo de desarrollo y resolución de incidencias. El contenido de los logs ayuda a reconstruir rápidamente qué hizo la aplicación cuando algo falla en autenticación, predicción o bootstrap.
 
 ---
 
