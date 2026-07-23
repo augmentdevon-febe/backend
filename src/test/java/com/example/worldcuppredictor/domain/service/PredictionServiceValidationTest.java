@@ -76,7 +76,7 @@ public class PredictionServiceValidationTest {
     }
 
     @Test
-    void createPredictionRejectsUnknownHomeTeam() {
+    void createPredictionAllowsUnknownHomeTeamWhenProviderCanRespond() throws Exception {
         PredictionRequest request = new PredictionRequest();
         request.setHomeTeam("Unknown");
         request.setAwayTeam("Argentina");
@@ -85,13 +85,15 @@ public class PredictionServiceValidationTest {
         user.setGoogleSubject("sub");
         user.setEmail("test@example.com");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> predictionService.createPrediction(user, request));
-        assertTrue(ex.getMessage().contains("Unknown home team"));
+        var dto = predictionService.createPrediction(user, request);
+
+        assertEquals(2, dto.getPredictedHomeGoals());
+        assertEquals(1, dto.getPredictedAwayGoals());
+        assertEquals(ResultType.HOME_WIN, dto.getResult());
     }
 
     @Test
-    void createPredictionRejectsUnknownAwayTeam() {
+    void createPredictionAllowsUnknownAwayTeamWhenProviderCanRespond() throws Exception {
         PredictionRequest request = new PredictionRequest();
         request.setHomeTeam("Brazil");
         request.setAwayTeam("Unknown");
@@ -100,9 +102,11 @@ public class PredictionServiceValidationTest {
         user.setGoogleSubject("sub");
         user.setEmail("test@example.com");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> predictionService.createPrediction(user, request));
-        assertTrue(ex.getMessage().contains("Unknown away team"));
+        var dto = predictionService.createPrediction(user, request);
+
+        assertEquals(2, dto.getPredictedHomeGoals());
+        assertEquals(1, dto.getPredictedAwayGoals());
+        assertEquals(ResultType.HOME_WIN, dto.getResult());
     }
 
     @Test

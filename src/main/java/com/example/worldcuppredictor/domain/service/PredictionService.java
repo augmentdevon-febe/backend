@@ -79,13 +79,6 @@ public class PredictionService {
         Map<String, TeamStats> stats = teamStatsRepository.findAll().stream()
                 .collect(Collectors.toMap(ts -> ts.getTeamName().toLowerCase(), ts -> ts));
 
-        if (!stats.containsKey(req.getHomeTeam().toLowerCase())) {
-            throw new IllegalArgumentException("Unknown home team: " + req.getHomeTeam());
-        }
-        if (!stats.containsKey(req.getAwayTeam().toLowerCase())) {
-            throw new IllegalArgumentException("Unknown away team: " + req.getAwayTeam());
-        }
-
         OffsetDateTime parsedDate = null;
         if (req.getMatchDate() != null && !req.getMatchDate().isBlank()) {
             try {
