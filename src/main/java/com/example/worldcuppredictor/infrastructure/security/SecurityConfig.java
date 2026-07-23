@@ -22,8 +22,9 @@ import java.util.Map;
  *
  * <p>Security rules:
  * <ul>
- *   <li>Public endpoints: {@code /api/health}, {@code /api/auth/login}, OAuth2 redirect URIs,
- *       H2 console, and Swagger/OpenAPI docs.</li>
+ *   <li>Public endpoints: {@code /api/health}, {@code /api/auth/login},
+ *       {@code /api/auth/switch-account}, OAuth2 redirect URIs, H2 console,
+ *       and Swagger/OpenAPI docs.</li>
  *   <li>All other requests require an authenticated session.</li>
  * </ul>
  *
@@ -34,6 +35,9 @@ import java.util.Map;
  * {@code /api/auth/session}. Authentication failures redirect to
  * {@code /api/auth/login?error=true}. Unauthenticated API requests receive HTTP 401 instead
  * of the default redirect to the login page.
+ *
+ * <p>OAuth2 authorization requests include {@code prompt=select_account} so users can choose
+ * a different Google account when starting authentication.
  */
 @Configuration
 @EnableMethodSecurity
