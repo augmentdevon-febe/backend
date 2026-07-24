@@ -1,4 +1,4 @@
-# Análisis Arquitectónico Exhaustivo - World Cup Predictor Backend
+# Análisis Arquitectónico Exhaustivo - World Soccer Predictor Backend
 
 **Documento generado:** 2026-07-14  
 **Versión del proyecto:** 0.1.0  

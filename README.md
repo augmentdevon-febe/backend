@@ -1,4 +1,4 @@
-# World Soccer Predictor
+# World Soccer Predictor Backend
 
 Spring Boot backend starter that predicts World Soccer match scores using an external AI provider (OpenAI by default). Features:
 
