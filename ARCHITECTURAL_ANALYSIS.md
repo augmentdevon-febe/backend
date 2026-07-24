@@ -277,43 +277,12 @@ com.example.worldcuppredictor/
 
 ### 2.1 FLUJO #1: Autenticación OAuth2 Google (Nombre: "OAuth2-Google-Login-Flow")
 
-```
-┌─ User ─┐
-    │
-    ├─→ GET /api/auth/login?redirectUrl=...
-    │       ↓
-    │   AuthController.login()
-    │       ↓
-    │   authRedirectService.storeRedirectInSession()
-    │       ↓
-    │   response.sendRedirect("/oauth2/authorization/google")
-    │       ↓
-    ├─→ Google OAuth2 Flow
-    │       ↓
-    ├─→ Google Callback: /login/oauth2/code/google
-    │       ↓
-    │   Spring OAuth2AutoConfiguration
-    │       ↓
-    │   CustomOidcUserService.loadUser()
-    │       ├─→ Valida OIDC token
-    │       ├─→ Busca User por googleSubject
-    │       ├─→ Si existe: actualiza perfil y lastLoginAt
-    │       └─→ Si no existe: crea nuevo User (role=USER)
-    │       ↓
-    │   AuthRedirectSuccessHandler.onAuthenticationSuccess()
-    │       ↓
-    │   authRedirectService.consumeRedirectFromSession()
-    │       ↓
-    └─→ response.sendRedirect(storedTarget)
-            ↓
-        Cliente redirigido a frontend con JSESSIONID en cookie
-```
+Resumen ejecutivo:
+- El cliente inicia en `GET /api/auth/login`, el backend guarda la redirección y envía al usuario al proveedor OAuth2.
+- Tras el callback de Google, se realiza upsert de usuario y se redirige al frontend con sesión activa.
+- La sesión se basa en cookie HTTP (`JSESSIONID`) y el lookup principal del usuario usa `googleSubject`.
 
-**Puntos clave:**
-- Las variables de redirección se almacenan en la sesión HTTP
-- El googleSubject es la clave única primaria de lookup
-- El email es único pero puede cambiar, así que no se usa como lookup principal
-- La sesión HTTP se persiste en cookies con flags: HttpOnly, Secure, SameSite=None
+Detalle técnico completo: ver sección 9.1 y sección 9.3.
 
 ### 2.2 FLUJO #2: Predicción End-to-End (Nombre: "PredictionGeneration-End2End-Flow")
 
@@ -384,46 +353,21 @@ com.example.worldcuppredictor/
 
 ### 2.3 FLUJO #3: Logout (Nombre: "Session-Invalidation-Logout-Flow")
 
-```
-┌─ Authenticated User ─┐
-    │
-    ├─→ POST /api/auth/logout (o GET /api/auth/logout)
-    │       ↓
-    │   AuthController.logout()
-    │       │
-    │       ├─→ AuthService.logout()
-    │       │   ├─ HttpSession.invalidate()
-    │       │   ├─ SecurityContextHolder.clearContext()
-    │       │   ├─ Expira cookies: JSESSIONID, SESSION
-    │       │   │  (Set-Cookie con max-age=0, Secure, HttpOnly, SameSite=None)
-    │       │   └─ Loguea: auth.logout user=email hadSession=true
-    │       │
-    │       └─→ HTTP 200 { "success": true, "message": "Logged out successfully" }
-```
+Resumen ejecutivo:
+- El usuario invoca `POST /api/auth/logout` (o `GET` para navegador).
+- El backend invalida sesión, limpia contexto de seguridad y expira cookies de autenticación.
+- La respuesta de API confirma cierre de sesión exitoso.
+
+Detalle técnico de sesión/cookies: ver sección 9.3.
 
 ### 2.4 FLUJO #4: Inicialización de Datos (Nombre: "Bootstrap-Data-Synchronization-Flow")
 
-```
-┌─ Aplicación Inicia ─┐
-    │
-    ├─→ DotenvEnvironmentPostProcessor
-    │   ├─ Lee .env si existe
-    │   └─ Carga variables de entorno
-    │
-    ├─→ DataSeeder @PostConstruct (Flujo: "TeamStats-Sync-Flow")
-    │   ├─ Carga 30+ equipos de World Cup 2026
-    │   ├─ Compara con BD existente
-    │   ├─ Inserta, actualiza o elimina según sea necesario
-    │   └─ Loguea: TeamStats sync complete: inserted=X, updated=Y, removed=Z
-    │
-    ├─→ MatchCatalogSeeder @PostConstruct (Flujo: "MatchCatalog-Sync-Flow")
-    │   ├─ Lee bootstrap/matches.json
-    │   ├─ Parsea con Jackson
-    │   ├─ Sincroniza con BD usando matchKey (home|away|stage|venue|date)
-    │   └─ Loguea: Match catalog sync complete
-    │
-    └─→ Aplicación lista para recibir requests
-```
+Resumen ejecutivo:
+- En el arranque se cargan variables de entorno y se inicializan los seeders.
+- `DataSeeder` sincroniza estadísticas de equipos y `MatchCatalogSeeder` sincroniza catálogo de partidos.
+- El proceso deja la base de datos en estado consistente antes de aceptar requests.
+
+Detalle técnico completo: ver sección 11.1 y sección 11.2.
 
 ---
 
@@ -456,27 +400,120 @@ com.example.worldcuppredictor/
 
 ### 3.2 Patrones Implementados
 
-| Patrón | Ubicación | Descripción |
-|--------|-----------|-------------|
-| **Repository Pattern** | domain/repository | Abstracción de acceso a datos con Spring Data JPA |
-| **Service Layer** | domain/service | Lógica de negocio centralizada |
-| **DTO Pattern** | api/dto | Transformación de data entre capas |
-| **Ports & Adapters (Hexagonal)** | infrastructure/ai | `AiPredictionClient` interface + `OpenAiPredictionClient` impl |
-| **Factory Pattern** | infrastructure/exception | `ApiErrorFactory` para construcción de errores |
-| **Strategy Pattern** | infrastructure/ai | Intercambiabilidad de proveedores IA |
-| **Observer Pattern** | infrastructure/bootstrap | `@PostConstruct` para inicialización |
-| **Handler Pattern** | infrastructure/security | `AuthRedirectSuccessHandler`, `AuthenticationEntryPoint` |
-| **Decorator Pattern** | infrastructure/exception | `@RestControllerAdvice` para wrapping de excepciones |
+| Patrón                            | Ubicación                 | Descripción                                                           |
+|--------------------------------   |-------------------------- |---------------------------------------------------------------------- |
+| **Repository Pattern**            | domain/repository         | Abstracción de acceso a datos con Spring Data JPA                     |
+| **Service Layer**                 | domain/service            | Lógica de negocio centralizada                                        |
+| **DTO Pattern**                   | api/dto                   | Transformación de data entre capas                                    |
+| **Ports & Adapters (Hexagonal)**  | infrastructure/ai         | `AiPredictionClient` interface + `OpenAiPredictionClient` impl        |
+| **Factory Pattern**               | infrastructure/exception  | `ApiErrorFactory` para construcción de errores                        |
+| **Strategy Pattern**              | infrastructure/ai         | Intercambiabilidad de proveedores IA                                  |
+| **Observer Pattern**              | infrastructure/bootstrap  | `@PostConstruct` para inicialización                                  |
+| **Handler Pattern**               | infrastructure/security   | `AuthRedirectSuccessHandler`, `AuthenticationEntryPoint`              |
+| **Decorator Pattern**             | infrastructure/exception  | `@RestControllerAdvice` para wrapping de excepciones                  |
+
+### 3.2.1 Repository Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/domain/repository/UserRepository.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/PredictionRepository.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/MatchCatalogRepository.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/TeamStatsRepository.java`
+
+**Detalle de implementación:**
+La aplicación delega el acceso a datos en interfaces que extienden `JpaRepository`, evitando SQL manual en controladores y servicios. Cada repositorio expone operaciones de dominio (por ejemplo, búsqueda por usuario o por `googleSubject`) para mantener consultas reutilizables y consistentes.
+
+### 3.2.2 Service Layer
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthService.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthRedirectService.java`
+
+**Detalle de implementación:**
+La lógica de negocio y orquestación se concentra en servicios inyectados por constructor. Los controladores actúan como capa delgada de entrada/salida, mientras los servicios validan reglas, coordinan repositorios y encapsulan flujo de negocio.
+
+### 3.2.3 DTO Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/api/dto/request/PredictionRequest.java`
+- `src/main/java/com/example/worldcuppredictor/api/dto/response/PredictionDto.java`
+- `src/main/java/com/example/worldcuppredictor/api/dto/response/MatchResponse.java`
+- `src/main/java/com/example/worldcuppredictor/api/dto/response/ExternalAiRawResponse.java`
+
+**Detalle de implementación:**
+Los DTO separan contrato de API y modelo persistente. `PredictionRequest` valida entrada y `PredictionDto`/`MatchResponse` controlan la forma de salida, evitando exponer entidades JPA directamente y facilitando evolución del contrato HTTP.
+
+### 3.2.4 Ports & Adapters
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/AiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+
+**Detalle de implementación:**
+`AiPredictionClient` define la interfaz para realizar la predicción y `OpenAiPredictionClient` es la implementacion de la interfaz para OpenAI. `PredictionService` depende de la interfaz, permitiendo sustituir proveedor sin modificar la lógica de negocio.
+
+### 3.2.5 Factory Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ApiErrorFactory.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ApiErrorResponse.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ErrorBody.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ErrorCode.java`
+
+**Detalle de implementación:**
+La factoría centraliza la creación de errores API con estructura uniforme. Esto evita duplicación de payloads en handlers y garantiza consistencia de códigos, mensajes y metadatos de error.
+
+### 3.2.6 Strategy Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/AiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+
+**Detalle de implementación:**
+La interfaz `AiPredictionClient` actúa como contrato de estrategia para la generación de predicciones. La implementación activa (`OpenAiPredictionClient`, marcada como primaria) puede ser reemplazada por otra sin cambiar consumidores.
+
+### 3.2.7 Observer Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/DataSeeder.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/MatchCatalogSeeder.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/DotenvEnvironmentPostProcessor.java`
+
+**Detalle de implementación:**
+El arranque de Spring dispara eventos de ciclo de vida que ejecutan componentes con `@PostConstruct`. Los seeders reaccionan al inicio del contexto para sincronizar datos automáticamente antes de atender solicitudes.
+
+### 3.2.8 Handler Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthRedirectSuccessHandler.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/ApiAuthenticationEntryPoint.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/ApiAccessDeniedHandler.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/SecurityConfig.java`
+
+**Detalle de implementación:**
+La seguridad delega respuestas de éxito/error en handlers especializados. Esto separa decisiones de redirección y manejo de acceso denegado del resto de configuración y mejora la cohesión de la capa de seguridad.
+
+### 3.2.9 Decorator Pattern
+
+**Componentes utilizados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/GlobalExceptionHandler.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ApiErrorFactory.java`
+
+**Detalle de implementación:**
+`@RestControllerAdvice` envuelve la ejecución de controladores interceptando excepciones y transformándolas en respuestas estándar. Este comportamiento transversal decora la capa web sin alterar la lógica de cada endpoint.
 
 ### 3.3 Principios SOLID
 
-| Principio | Aplicación |
-|-----------|-----------|
-| **S**ingle Responsibility | Cada clase tiene una única razón para cambiar (Controllers, Services, Repositories) |
-| **O**pen/Closed | `AiPredictionClient` abierto a nuevas implementaciones sin modificar existentes |
-| **L**iskov Substitution | Nuevos repositorios pueden reemplazar `JpaRepository` sin romper contrato |
-| **I**nterface Segregation | `AiPredictionClient` expone solo el método `predict()` necesario |
-| **D**ependency Inversion | Inyección de dependencias via constructores; desacoplamiento de Spring |
+| Principio                   | Aplicación                                                                         |
+|-----------------------------|---------------------------------------------------------------------------------    |
+| **S**ingle Responsibility   | Cada clase tiene una única razón para cambiar (Controllers, Services, Repositories) |
+| **O**pen/Closed             | `AiPredictionClient` abierto a nuevas implementaciones sin modificar existentes     |
+| **L**iskov Substitution     | Nuevos repositorios pueden reemplazar `JpaRepository` sin romper contrato           |
+| **I**nterface Segregation   | `AiPredictionClient` expone solo el método `predict()` necesario                    |
+| **D**ependency Inversion    | Inyección de dependencias via constructores; desacoplamiento de Spring              |
 
 ---
 
@@ -571,125 +608,6 @@ TeamStats (standalone)
     ├─ defenseScore [0-1]
     ├─ squadStrengthScore [0-1]
     └─ ... (otros scores)
-```
-
----
-
-## 5. DECISIONES ARQUITECTÓNICAS IMPORTANTES
-
-### 5.1 Spring Security + OAuth2 (Google OIDC)
-
-**Decisión:** Usar Spring Security 6.x con OAuth2Client y OIDC para Google.
-
-**Razones:**
-- Autenticación stateful con sesiones HTTP (JSESSIONID)
-- No requiere JWT ni tokens custom
-- Google maneja la seguridad del oauth flow
-- Integración nativa con Spring Security
-
-**Trade-offs:**
-- Bound a cookies HTTP (no ideal para SPA pura)
-- Session affinity necesaria en load balancing
-- CSRF en `/api/**` deshabilitado (REST clients)
-
-**Alternativa considerada:** JWT stateless
-- Pro: Escalable, sin session affinity
-- Con: Gestión de revocación más compleja
-
-### 5.2 Arquitectura de Repositorio (Ports & Adapters)
-
-**Decisión:** `AiPredictionClient` como interfaz + `OpenAiPredictionClient` como implementación.
-
-**Razones:**
-- Desacoplamiento de la lógica de negocio de OpenAI
-- Fácil agregar nuevos proveedores (Anthropic, local LLM, etc.)
-- @Primary annotation selecciona automáticamente la impl
-- Testeable con mocks
-
-**Estructura:**
-```java
-public interface AiPredictionClient {
-    ExternalAiRawResponse predict(String prompt, Map<String, Object> inputs) throws Exception;
-}
-
-@Service @Primary
-public class OpenAiPredictionClient implements AiPredictionClient { ... }
-```
-
-### 5.3 Parser Resiliente para Respuestas IA
-
-**Decisión:** Multi-strategy JSON extraction en `PredictionResponseParser`.
-
-**Razones:**
-- Distintos proveedores IA retornan JSON en diferentes formatos
-- OpenAI Responses API envelope puede variar
-- Necesidad de soportar cambios en API sin romper aplicación
-- Fallback a búsqueda recursiva en string nodes
-
-**Estrategias (en orden):**
-1. Top-level JSON parsing
-2. Extracción de envelopes conocidos (outputs[], choices[], etc.)
-3. Búsqueda recursiva en todos los string nodes
-4. Extracción de primer bloque `{...}` de free-form text
-
-### 5.4 Truncado de Explanation (Legacy Schema)
-
-**Decisión:** Truncar explanation a 255 chars con warning log.
-
-**Razones:**
-- DB legacy puede tener `explanation` como VARCHAR(255)
-- Evita SQL 22001 insert failures
-- Permite migración gradual a TEXT
-- Warning log permite identificar necesidad de migración
-
-**Código:**
-```java
-private String trimExplanationForLegacySchema(String explanation) {
-    if (explanation != null && explanation.length() > 255) {
-        log.warn("Trimming explanation from {} to 255 chars", explanation.length());
-        return explanation.substring(0, 255);
-    }
-    return explanation;
-}
-```
-
-### 5.5 Data Seeding en @PostConstruct
-
-**Decisión:** Sincronizar TeamStats y MatchCatalog en startup.
-
-**Razones:**
-- Consistencia de datos garantizada
-- Actualización automática si datos cambian
-- Fácil debugging en desarrollo
-- No requiere scripts de migración separados
-
-**Trade-offs:**
-- Startup lento si dataset es muy grande
-- Transacción global puede bloquear si hay índices
-- Requiere manejo de concurrencia en clustered deployments
-
-### 5.6 Enumeraciones para Estados (ResultType, Role)
-
-**Decisión:** Usar `@Enumerated(EnumType.STRING)` en lugar de ordinales.
-
-**Razones:**
-- Legibilidad en BD (HOME_WIN vs 0)
-- Resistencia a reordenamiento de enums
-- Debugging facilitado
-
-### 5.7 Búsqueda por googleSubject como Primary Key Lógico
-
-**Decisión:** Usar googleSubject (OIDC sub claim) como clave principal de lookup.
-
-**Razones:**
-- Inmutable y único por proveedor de OIDC
-- Email puede cambiar entre logins
-- Siguiente práctica estándar en OAuth2
-
-**Fallback:**
-```java
-userRepository.findByGoogleSubject(subject)
-    .or(() -> userRepository.findByEmail(email))
 ```
 
 ---
@@ -1132,22 +1050,11 @@ Cookie: JSESSIONID=...
 
 ### 8.3 Autenticación y Seguridad
 
-**Mecanismo:** Session HTTP cookie (JSESSIONID) establecida después de Google OAuth2
+Resumen de contrato:
+- La API usa sesión HTTP basada en cookie tras autenticación OAuth2.
+- Las reglas de CORS y CSRF están definidas por configuración y `SecurityConfig`.
 
-**Headers de Seguridad (Cookies):**
-```
-Set-Cookie: JSESSIONID=...; Path=/; Secure; HttpOnly; SameSite=None
-```
-
-**CORS:**
-- Allowed Origins: `${APP_ALLOWED_ORIGINS}` (default: http://localhost:4200)
-- Allowed Methods: GET, POST, PUT, DELETE, OPTIONS
-- Allowed Headers: Content-Type, Authorization, X-Requested-With
-- Credentials: true
-
-**CSRF:**
-- Deshabilitado en `/api/**` y `/h2-console/**` (para clientes REST)
-- Habilitado en otras rutas
+Para evitar duplicidad narrativa, el detalle operativo del flujo de autenticación y sesión está en sección 9, y la clasificación de rutas públicas/protegidas está en sección 10.
 
 ### 8.4 Documentación OpenAPI/Swagger
 
@@ -1279,13 +1186,8 @@ GET  /api/health                              → 200 OK
 GET  /api/auth/login                          → 302 Redirect a Google
 GET  /api/auth/session                        → 401 (si no auth)
 GET  /api/auth/logout                         → 200 OK (sin efecto)
-POST /api/auth/logout                         → 200 OK (sin efecto)
 GET  /oauth2/**                                → OAuth2 flow
 GET  /login/oauth2/**                          → OAuth2 callback
-GET  /h2-console/**                            → H2 console
-GET  /v3/api-docs/**                           → OpenAPI docs
-GET  /swagger-ui/**                            → Swagger UI
-GET  /swagger-ui.html                          → Swagger UI
 GET  /error                                    → Error handler
 ```
 
@@ -1297,13 +1199,6 @@ GET  /api/matches                              → 200 List<MatchResponse>
 POST /api/predictions                          → 200 PredictionDto (validated)
                                                → 404 (si no existe o pertenece a otro)
 ```
-
-### 10.3 Autorización a Nivel de Dominio
-
-**User Isolation:**
-- Las predicciones `GET /api/predictions/{id}` solo retornan si `prediction.user.id == authenticatedUser.id`
-- No hay endpoints de administración todavía (Role.ADMIN no usado)
-
 ---
 
 ## 11. INICIALIZACIÓN Y BOOTSTRAP
@@ -1332,32 +1227,20 @@ POST /api/predictions                          → 200 PredictionDto (validated)
    ├─ Sincroniza MatchCatalog
    └─ Loguea resultados
 
-5. Netty/Tomcat Server Listen
-   └─ :8080 (default)
+5. Server Listening
 
 6. Aplicación lista para requests
 ```
-
-### 11.2 Datos de Bootstrap
-
-**TeamStats (30+ equipos):**
-- Incluye ranking FIFA, confederation, scores normalizados
-- Actualizado en cada startup via `buildWorldCup2026Pool()`
-
-**MatchCatalog:**
-- Cargado desde `bootstrap/matches.json` en resources
-- Sincronizado por matchKey (home|away|stage|venue|date)
-
 ---
 
 ## 12. CONFIGURACIÓN DE PERFILES
 
 ### 12.1 Perfiles Spring
 
-| Perfil | Cuando | Base de Datos | SSL | CORS Origins |
-|--------|--------|---------------|-----|--------------|
-| default (dev) | Local | H2 file:// | No | http://localhost:4200 |
-| prod | Render | PostgreSQL | Sí (Secure cookies) | ${FRONTEND_URL} |
+| Perfil        | Cuando | Base de Datos | SSL                 | CORS Origins          |
+|---------------|--------|---------------|---------------------|-----------------------|
+| default (dev) | Local  | H2 file://    | No                  | http://localhost:4200 |
+| prod          | Render | PostgreSQL    | Sí (Secure cookies) | ${FRONTEND_URL}       |
 
 ### 12.2 Activación de Perfiles
 
@@ -1378,39 +1261,39 @@ export SPRING_PROFILES_ACTIVE=prod
 
 ## 13. TABLA DE TECNOLOGÍAS Y VERSIONES
 
-| Tecnología | Versión | Propósito |
-|------------|---------|----------|
-| Java | 21 | Lenguaje base |
-| Spring Boot | 3.2.2 | Framework web/DI/seguridad |
-| Spring Data JPA | 3.2.2 | ORM y repositorios |
-| Spring Security | 6.2.1 | Autenticación/autorización |
-| Spring OAuth2 Client | 3.2.2 | Google OAuth2 |
-| Spring WebFlux | 3.2.2 | WebClient para OpenAI |
-| Spring Validation | 3.2.2 | Bean validation |
-| H2 Database | 2.2.224 | DB en memoria/file (dev) |
-| PostgreSQL Driver | 42.7.4 | DB producción |
-| Jackson | 2.16.2 | JSON parsing |
-| SpringDoc OpenAPI | 2.1.0 | Swagger/OpenAPI docs |
-| JUnit 5 | 5.10.1 | Testing |
-| Mockito | 5.5.0 | Mocking |
-| Gradle | 8.5 | Build tool |
+| Tecnología           | Versión | Propósito                     |
+|----------------------|---------|-------------------------------|
+| Java                 | 21      | Lenguaje base                 |
+| Spring Boot          | 3.2.2   | Framework web/DI/seguridad    |
+| Spring Data JPA      | 3.2.2   | ORM y repositorios            |
+| Spring Security      | 6.2.1   | Autenticación/autorización    |
+| Spring OAuth2 Client | 3.2.2   | Google OAuth2                 |
+| Spring WebFlux       | 3.2.2   | WebClient para OpenAI         |
+| Spring Validation    | 3.2.2   | Bean validation               |
+| H2 Database          | 2.2.224 | DB en memoria/file (dev)      |
+| PostgreSQL Driver    | 42.7.4  | DB producción                 |
+| Jackson              | 2.16.2  | JSON parsing                  |
+| SpringDoc OpenAPI    | 2.1.0   | Swagger/OpenAPI docs          |
+| JUnit 5              | 5.10.1  | Testing                       |
+| Mockito              | 5.5.0   | Mocking                       |
+| Gradle               | 8.5     | Build tool                    |
 
 ---
 
 ## 14. SUMMARY DE DECISIONES ARQUITECTÓNICAS
 
-| Decisión | Impacto | Justificación |
-|----------|--------|---------------|
-| Spring Security OAuth2 (stateful) | Sessions HTTP con cookies | Integración nativa, seguridad OOB |
-| Ports & Adapters (AiPredictionClient) | Desacoplamiento de OpenAI | Extensibilidad, testabilidad |
-| Multi-strategy parser | Resiliencia a cambios API | Producción-ready |
-| Entity-level user isolation | Seguridad de datos | Evita data leaks entre usuarios |
-| JPA + H2/PostgreSQL | ORM con auto-schema | Simplifica persistencia |
-| Centralized error handling | Consistencia en respuestas | Contrato API predecible |
-| @PostConstruct seeding | Data consistency | Garantiza integridad en startup |
-| googleSubject as primary key | Inmutabilidad | OAuth2 best practice |
-| Explanation truncation (legacy) | Compatibilidad | Migración gradual de schema |
-| Logging en DEBUG | Debugging facilitado | Rastreo en desarrollo |
+| Decisión                              | Impacto                     | Justificación                    |
+|---------------------------------------|-----------------------------|----------------------------------|
+| Spring Security OAuth2 (stateful)     | Sessions HTTP con cookies   | Integración nativa               |
+| Ports & Adapters (AiPredictionClient) | Desacoplamiento de OpenAI   | Extensibilidad, testabilidad     |
+| Multi-strategy parser                 | Resiliencia a cambios API   | Producción-ready                 |
+| Entity-level user isolation           | Seguridad de datos          | Evita data leaks entre usuarios  |
+| JPA + H2/PostgreSQL                   | ORM con auto-schema         | Simplifica persistencia          |
+| Centralized error handling            | Consistencia en respuestas  | Contrato API predecible          |
+| @PostConstruct seeding                | Data consistency            | Garantiza integridad en startup  |
+| googleSubject as primary key          | Inmutabilidad               | OAuth2 best practice             |
+| Explanation truncation (legacy)       | Compatibilidad              | Migración gradual de schema      |
+| Logging en DEBUG                      | Debugging facilitado        | Rastreo en desarrollo            |
 
 ### 14.1 Spring Security OAuth2 (stateful)
 
@@ -1420,13 +1303,28 @@ Este enfoque reduce la complejidad operativa frente a un esquema JWT propio, ya 
 
 La desventaja es que la aplicación depende de cookies y de la existencia de una sesión compartida o de sticky sessions si el despliegue escala horizontalmente. Aun así, para el alcance actual del sistema, el intercambio es favorable porque simplifica la autenticación, el cierre de sesión y el mantenimiento del estado del usuario.
 
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/SecurityConfig.java`
+- `src/main/java/com/example/worldcuppredictor/api/controller/AuthController.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/CustomOidcUserService.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthRedirectSuccessHandler.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthService.java`
+- `src/main/resources/application.yml`
+- `src/main/resources/application-prod.yml`
+
 ### 14.2 Ports & Adapters (AiPredictionClient)
 
-Se introdujo `AiPredictionClient` como un bussines port y `OpenAiPredictionClient` como un adaptador técnico para aislar la lógica de predicción del proveedor externo. Esto evita que `PredictionService` conozca detalles de HTTP, encabezados, endpoints o formatos concretos de OpenAI.
+Se introdujo `AiPredictionClient` como una interfaz y `OpenAiPredictionClient` como una implementación de esta interfaz para aislar la lógica de predicción del proveedor externo. Esto evita que el servicio `PredictionService` conozca detalles de HTTP, encabezados, endpoints o formatos concretos de OpenAI.
 
-La ventaja principal es la extensibilidad: si mañana se agrega Anthropic, un modelo local o cualquier otro proveedor, la lógica del dominio no necesita cambiar; solo se agrega otra implementación del puerto. También mejora la testabilidad, porque el servicio de predicciones puede validarse con mocks o stubs sin depender de la red.
+La ventaja principal es la extensibilidad: si mañana se agrega Anthropic, un modelo local o cualquier otro proveedor, la lógica del dominio no necesita cambiar; solo se agrega otra implementación de la interfaz. También mejora la testabilidad, porque el servicio de predicciones puede validarse con mocks o stubs sin depender de la red.
 
 Arquitectónicamente, esta separación reduce el acoplamiento y deja claro qué parte pertenece al negocio y cuál a la infraestructura. Es una decisión útil cuando la integración externa puede variar con frecuencia o fallar por razones ajenas al dominio.
+
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/AiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+- `src/main/resources/application.yml`
 
 ### 14.3 Multi-strategy parser
 
@@ -1436,6 +1334,13 @@ La estrategia múltiple permite procesar respuestas directas, envoltorios conoci
 
 Esta decisión prioriza la robustez operativa sobre la simplicidad absoluta. En un sistema que depende de un servicio externo no totalmente controlado, ese intercambio es razonable porque evita que pequeñas diferencias de formato se conviertan en fallos de negocio.
 
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionResponseParser.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java`
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+- `src/main/java/com/example/worldcuppredictor/api/dto/response/ExternalAiRawResponse.java`
+- `src/main/java/com/example/worldcuppredictor/api/dto/response/PredictionDto.java`
+
 ### 14.4 Entity-level user isolation
 
 El aislamiento a nivel de entidad significa que cada predicción se asocia explícitamente con un usuario y que las operaciones posteriores verifican esa relación antes de exponer datos. Esto evita que un usuario autenticado vea predicciones de otro usuario aunque conozca un identificador válido.
@@ -1443,6 +1348,13 @@ El aislamiento a nivel de entidad significa que cada predicción se asocia expl�
 Desde el punto de vista de seguridad, esta es una barrera importante porque la autenticación por sí sola no garantiza autorización. El sistema no asume que iniciar sesión basta para acceder a cualquier recurso; también valida la pertenencia del recurso al usuario autenticado.
 
 La consecuencia es una protección más fuerte contra filtraciones accidentales de datos y una base más sólida para futuras reglas de permisos, como roles administrativos o vistas compartidas.
+
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java`
+- `src/main/java/com/example/worldcuppredictor/domain/entity/User.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/PredictionRepository.java`
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+- `src/main/java/com/example/worldcuppredictor/api/controller/PredictionController.java`
 
 ### 14.5 JPA + H2/PostgreSQL
 
@@ -1452,6 +1364,15 @@ La principal ventaja es la productividad: el esquema puede evolucionar con menos
 
 El costo es que parte del comportamiento queda mediado por el ORM y hay que vigilar detalles como el DDL automático, los tipos de datos y las diferencias entre motores. Aun así, el balance es positivo porque el sistema necesita velocidad de desarrollo y una persistencia relativamente convencional.
 
+**Componentes de código relacionados:**
+- `build.gradle`
+- `src/main/java/com/example/worldcuppredictor/domain/entity/User.java`
+- `src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java`
+- `src/main/java/com/example/worldcuppredictor/domain/entity/MatchCatalog.java`
+- `src/main/java/com/example/worldcuppredictor/domain/entity/TeamStats.java`
+- `src/main/resources/application.yml`
+- `src/main/resources/application-prod.yml`
+
 ### 14.6 Centralized error handling
 
 El manejo centralizado de errores permite que la API responda con un contrato uniforme, sin que cada controlador construya respuestas de error de forma distinta. Eso mejora la experiencia del frontend y simplifica el diagnóstico, porque siempre se devuelve una estructura consistente con código, mensaje, timestamp y ruta.
@@ -1459,6 +1380,13 @@ El manejo centralizado de errores permite que la API responda con un contrato un
 También ayuda a separar la lógica de negocio de la lógica de presentación de errores. Los servicios y controladores pueden lanzar excepciones específicas, y `GlobalExceptionHandler` decide cómo traducirlas a HTTP.
 
 Esta decisión reduce la duplicación y hace más predecible el comportamiento de la API bajo fallos. Es especialmente útil cuando la aplicación integra dependencias externas, validaciones de entrada y reglas de dominio que pueden fallar por motivos distintos.
+
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/GlobalExceptionHandler.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ApiErrorFactory.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ApiErrorResponse.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/exception/ErrorCode.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/AiRateLimitException.java`
 
 ### 14.7 @PostConstruct seeding
 
@@ -1468,6 +1396,13 @@ La ventaja es la consistencia: cada vez que la aplicación inicia, el catálogo 
 
 El principal riesgo es que el arranque pueda volverse más lento si el volumen de datos crece. Por eso esta estrategia funciona bien mientras el conjunto de datos sea moderado; si el sistema escala mucho, podría migrarse a jobs de bootstrap más especializados.
 
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/DataSeeder.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/MatchCatalogSeeder.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/TeamStatsRepository.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/MatchCatalogRepository.java`
+- `src/main/resources/bootstrap/matches.json`
+
 ### 14.8 googleSubject as primary key
 
 Usar `googleSubject` como clave lógica principal permite identificar al usuario de forma estable e inmutable dentro del proveedor de OAuth2. A diferencia del correo electrónico, el subject no depende de que el usuario cambie su dirección de correo ni de que Google modifique algún atributo visible del perfil.
@@ -1475,6 +1410,12 @@ Usar `googleSubject` como clave lógica principal permite identificar al usuario
 Esto hace que el enlace entre la cuenta de Google y el registro local sea más confiable a largo plazo. También reduce la posibilidad de colisiones o reasignaciones incorrectas cuando el correo se usa como respaldo temporal durante migraciones o escenarios heredados.
 
 La decisión sigue la práctica habitual en integraciones OIDC: la identidad externa canónica es el subject y el correo se usa como atributo secundario o de conveniencia. Eso mejora la estabilidad del modelo de usuario y evita acoplar la identidad a un dato mutable.
+
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/domain/entity/User.java`
+- `src/main/java/com/example/worldcuppredictor/domain/repository/UserRepository.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/CustomOidcUserService.java`
+- `src/main/java/com/example/worldcuppredictor/api/controller/AuthController.java`
 
 ### 14.9 Explanation truncation (legacy)
 
@@ -1484,28 +1425,42 @@ Arquitectónicamente, es una medida de contención: prioriza que la predicción 
 
 Esta decisión es temporal y defensiva. Su valor está en permitir una evolución gradual sin interrumpir el funcionamiento del sistema mientras exista compatibilidad con una estructura de base de datos antigua.
 
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+- `src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java`
+- `src/main/java/com/example/worldcuppredictor/api/dto/response/PredictionDto.java`
+- `src/main/resources/application.yml`
+
 ### 14.10 Logging en DEBUG
 
-El logging en `DEBUG` durante el desarrollo facilita rastrear decisiones internas, flujos de autenticación, sincronización de datos y llamadas a servicios externos. En un backend con OAuth2, IA y seeding de datos, la observabilidad temprana ahorra tiempo al diagnosticar problemas de integración.
+El logging en `DEBUG` durante el desarrollo facilita rastrear decisiones internas y acelerar la resolución de incidencias. En producción, el nivel debe ajustarse por componente para equilibrar observabilidad y ruido.
 
-La elección de `DEBUG` para el paquete de la aplicación permite ver el detalle necesario sin saturar por completo la salida del sistema. En producción, ese nivel puede rebajarse o ajustarse por componente para mantener el equilibrio entre observabilidad y ruido.
+Para evitar duplicidad con el inventario operativo de logs, el detalle de eventos y mensajes se concentra en la sección 7.3.
 
-En resumen, esta decisión está orientada a acelerar el ciclo de desarrollo y resolución de incidencias. El contenido de los logs ayuda a reconstruir rápidamente qué hizo la aplicación cuando algo falla en autenticación, predicción o bootstrap.
+**Componentes de código relacionados:**
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthService.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/AuthRedirectSuccessHandler.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/security/CustomOidcUserService.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/DataSeeder.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/bootstrap/MatchCatalogSeeder.java`
+- `src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java`
+- `src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java`
+- `src/main/resources/application.yml`
 
 ---
 
 ## 15. TABLA DE RIESGOS Y MITIGACIONES
 
-| Riesgo | Probabilidad | Impacto | Mitigación |
-|--------|--------------|--------|-----------|
-| OpenAI API downtime | Media | Alto | AiRateLimitException + HTTP 429, cliente implementa retry |
-| Session affinity en load balancing | Media | Alto | Usar sticky sessions o shared session store (Spring Session) |
-| Data seeding lento en startup | Baja | Bajo | ~30ms para 30 equipos, aceptable |
-| Schema legacy (VARCHAR 255) | Baja | Bajo | Truncado de explanation, warning log |
-| CORS misconfiguration | Baja | Alto | Strict allowed-origins via config |
-| SQL injection | Muy baja | Crítico | JPA prepared statements + parameterized queries |
-| CSRF en API | Baja | Bajo | Deshabilitado en `/api/**` (REST clients) |
-| Broken authentication | Muy baja | Crítico | Spring Security OIDC + session validation |
+| Riesgo                              | Probabilidad | Impacto | Mitigación                                                      |
+|-------------------------------------|--------------|---------|-----------------------------------------------------------------|
+| OpenAI API downtime                 | Media        | Alto    | AiRateLimitException + HTTP 429, cliente implementa retry       |
+| Session affinity en load balancing  | Media        | Alto    | Usar sticky sessions o shared session store (Spring Session)    |
+| Data seeding lento en startup       | Baja         | Bajo    | ~30ms para 30 equipos, aceptable                                |
+| Schema legacy (VARCHAR 255)         | Baja         | Bajo    | Truncado de explanation, warning log                            |
+| CORS misconfiguration               | Baja         | Alto    | Strict allowed-origins via config                               |
+| SQL injection                       | Muy baja     | Crítico | JPA prepared statements + parameterized queries                 |
+| CSRF en API                         | Baja         | Bajo    | Deshabilitado en `/api/**` (REST clients)                       |
+| Broken authentication               | Muy baja     | Crítico | Spring Security OIDC + session validation                       |
 
 ---
 
