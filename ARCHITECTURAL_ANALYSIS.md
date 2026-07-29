@@ -1482,7 +1482,6 @@ Para evitar duplicidad con el inventario operativo de logs, el detalle de evento
 
 5. **Async Processing**
    - RabbitMQ/Kafka para predicciones
-   - Mejora UX (respuestas inmediatas)
 
 6. **Unit & Integration Tests**
    - Aumentar cobertura de tests
