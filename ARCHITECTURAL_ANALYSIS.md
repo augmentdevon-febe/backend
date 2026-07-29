@@ -367,8 +367,6 @@ Resumen ejecutivo:
 - `DataSeeder` sincroniza estadísticas de equipos y `MatchCatalogSeeder` sincroniza catálogo de partidos.
 - El proceso deja la base de datos en estado consistente antes de aceptar requests.
 
-Detalle técnico completo: ver sección 11.1 y sección 11.2.
-
 ---
 
 ## 3. ARQUITECTURA EN CAPAS Y PATRONES UTILIZADOS
