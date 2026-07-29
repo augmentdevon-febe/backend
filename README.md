@@ -5,11 +5,10 @@ Spring Boot backend starter that predicts World Soccer match scores using an ext
 - Spring Boot 3.x, Java 21
 - Gradle build
 - H2 file-based DB (persisted to `./data/worldcupdb`)
-- Google OAuth2 login (store user on first login)
-- Match catalog endpoint seeded from JSON (`GET /api/matches`)
-- Prediction endpoint that calls OpenAI and stores results
+- Google OAuth2 login
+- Catalog endpoint seeded from JSON (`GET /api/matches`)
+- Prediction endpoint that calls OpenAI and show results (`GET /api/predictions`)
 - Strict API error envelope (`error.code`, `error.message`, `error.details`, `timestamp`, `path`)
-- OpenAPI / Swagger UI
 
 See `.env.example` for env variables and copy it to `.env` for local runtime values.
 
@@ -34,7 +33,7 @@ If you add `render.yaml`, Render can create the web service and PostgreSQL datab
    - `OPENAI_MODEL_ID=gpt-4o-mini` (optional)
 5. For Blueprint deployment, Render builds from `Dockerfile` and creates Postgres/database variables from `render.yaml`.
 6. Register this redirect URI in Google Cloud Console:
-   - `https://<your-render-service>.onrender.com/login/oauth2/code/google`
+   - `https://world-soccer-predictor.onrender.com/login/oauth2/code/google`
 7. Verify the deployed app with `/api/health`, `/api/auth/login`, `/api/auth/session`, and `/api/matches`.
 
 Run locally:
