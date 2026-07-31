@@ -345,11 +345,42 @@ Detalle técnico completo: ver sección 9.1 y sección 9.3.
     └─→ HTTP 200 con PredictionDto
 ```
 
+Diagrama de secuencia del flujo de una predicción:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Usuario as Usuario
+    participant Controller as PredictionController
+    participant Service as PredictionService
+    participant Repo as PredictionRepository
+    participant AI as OpenAI / LLM
+    participant Parser as PredictionResponseParser
+    participant DB as Base de datos
+
+    Usuario->>Controller: POST /api/predictions
+    Controller->>Service: createPrediction(request)
+    Service->>Repo: validar/consultar contexto del partido
+    Repo-->>Service: datos del partido y usuario
+    Service->>AI: enviar prompt con datos del partido
+    AI-->>Service: respuesta cruda de la IA
+    Service->>Parser: parsear respuesta
+    Parser-->>Service: PredictionPayload
+    Service->>DB: guardar Prediction + metadata
+    DB-->>Service: entidad persistida
+    Service-->>Controller: PredictionDto
+    Controller-->>Usuario: 200 OK con resultado
+```
+
 **Tiempos y características:**
 - Validación en @Valid PredictionRequest (constraint violations)
 - Rate limiting delegado a OpenAI (429 triggering AiRateLimitException)
 - Parser resiliente a múltiples formatos de respuesta IA
 - Explicación truncada para compatibilidad con esquema legacy
+
+
+
+
 
 ### 2.3 FLUJO #3: Logout (Nombre: "Session-Invalidation-Logout-Flow")
 
