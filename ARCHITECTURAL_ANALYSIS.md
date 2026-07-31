@@ -372,6 +372,14 @@ sequenceDiagram
     Controller-->>Usuario: 200 OK con resultado
 ```
 
+**Trazabilidad de componentes:**
+- Inicio del flujo: [src/main/java/com/example/worldcuppredictor/api/controller/PredictionController.java](src/main/java/com/example/worldcuppredictor/api/controller/PredictionController.java)
+- Orquestación de negocio: [src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java](src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java)
+- Acceso a datos y persistencia: [src/main/java/com/example/worldcuppredictor/domain/repository/PredictionRepository.java](src/main/java/com/example/worldcuppredictor/domain/repository/PredictionRepository.java)
+- Integración con OpenAI: [src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java](src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java)
+- Parseo de respuesta IA: [src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionResponseParser.java](src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionResponseParser.java)
+- Entidad persistida: [src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java](src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java)
+
 **Tiempos y características:**
 - Validación en @Valid PredictionRequest (constraint violations)
 - Rate limiting delegado a OpenAI (429 triggering AiRateLimitException)
