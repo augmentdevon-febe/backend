@@ -1,42 +1,22 @@
 # World Soccer Predictor Backend
 
-Spring Boot backend starter that predicts World Soccer match scores using an external AI provider (OpenAI by default). Features:
+Spring Boot 3.2.2 / Java 21 backend for the World Soccer Predictor application. The service supports Google OAuth2 authentication, AI-powered match predictions, seeded team statistics, and a match catalog used by the frontend.
 
-- Spring Boot 3.x, Java 21
+## Features
+
+- Java 21 and Spring Boot 3.2.2
 - Gradle build
-- H2 file-based DB (persisted to `./data/worldcupdb`)
-- Google OAuth2 login
-- Catalog endpoint seeded from JSON (`GET /api/matches`)
-- Prediction endpoint that calls OpenAI and show results (`GET /api/predictions`)
-- Strict API error envelope (`error.code`, `error.message`, `error.details`, `timestamp`, `path`)
+- H2 file-based database for local development (persisted in `./data/worldcupdb`)
+- Google OAuth2 login and session-based authentication
+- Seeded match catalog and team statistics on startup
+- Prediction flow that builds a prompt and calls an AI provider (OpenAI by default)
+- Swagger UI / OpenAPI documentation
+- Strict API error envelope with `error.code`, `error.message`, `error.details`, `timestamp`, and `path`
 
-See `.env.example` for env variables and copy it to `.env` for local runtime values.
+## Quick start
 
-For Render deployment, use the `prod` profile and set `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `OPENAI_API_KEY` in the Render service environment.
-
-Render deployment
------------------
-
-Use Render for production hosting with a managed PostgreSQL database.
-
-If you add `render.yaml`, Render can create the web service and PostgreSQL database from the repo blueprint.
-
-1. Push the repository to GitHub.
-2. Create a Render Web Service from the GitHub repo.
-3. Create a Render PostgreSQL database and attach it to the service.
-4. Set these environment variables on the Render service:
-   - `SPRING_PROFILES_ACTIVE=prod`
-   - `FRONTEND_URL=https://<your-frontend-domain>`
-   - `GOOGLE_CLIENT_ID=...`
-   - `GOOGLE_CLIENT_SECRET=...`
-   - `OPENAI_API_KEY=...`
-   - `OPENAI_MODEL_ID=gpt-4o-mini` (optional)
-5. For Blueprint deployment, Render builds from `Dockerfile` and creates Postgres/database variables from `render.yaml`.
-6. Register this redirect URI in Google Cloud Console:
-   - `https://world-soccer-predictor.onrender.com/login/oauth2/code/google`
-7. Verify the deployed app with `/api/health`, `/api/auth/login`, `/api/auth/session`, and `/api/matches`.
-
-Run locally:
+1. Copy [.env.example](.env.example) to `.env` and fill in the required values.
+2. Start the backend:
 
 ```bash
 ./gradlew bootRun
@@ -44,103 +24,111 @@ Run locally:
 gradlew.bat bootRun
 ```
 
-Run tests:
+3. Open the app at:
+   - Swagger UI: http://localhost:8080/swagger-ui/index.html
+   - H2 console: http://localhost:8080/h2-console
+   - OpenAPI contract: [src/main/resources/openapi/matches-api.yaml](src/main/resources/openapi/matches-api.yaml)
 
-```bash
-./gradlew test
-```
+## Environment variables
 
-H2 console: http://localhost:8080/h2-console
-Swagger UI: http://localhost:8080/swagger-ui/index.html
-OpenAPI contract file: `src/main/resources/openapi/matches-api.yaml`
+The application loads values from `.env` automatically when present. The current defaults and expected variables are:
 
-Authentication and session cookie flow
---------------------------------------
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL_ID` (optional; defaults to `gpt-4o-mini` in the app config)
+- `SPRING_PROFILES_ACTIVE` (use `prod` for Render deployments)
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+- `FRONTEND_URL`
+- `APP_ALLOWED_ORIGINS`
+- `APP_FALLBACK_REDIRECT`
 
-This app uses Google OAuth2 login. The login flow can be started with the REST client in `requests.http`.
+## Authentication flow
 
-1. Start the backend:
+This app uses Google OAuth2 with a session cookie (`JSESSIONID`). A working example is available in [requests.http](requests.http).
 
-```bash
-./gradlew bootRun
-# or on Windows
-gradlew.bat bootRun
-```
-
-2. Open `requests.http` in your editor.
-
-3. Send the request labeled `GET /api/auth/login`.
-   - This endpoint redirects into the Google OAuth2 flow.
-   - In the REST client, inspect the response headers and copy the `JSESSIONID` value from `Set-Cookie`.
-   - If the REST client follows the redirect automatically, use the first response headers or disable automatic redirect following.
-
-4. Paste that cookie value into the `Cookie: JSESSIONID=...` header in the requests that follow.
-
-5. Verify authentication with:
-   - `GET /api/auth/session`
-   - `GET /api/auth/me`
-
-6. After the session is verified, use the same `JSESSIONID` cookie to call:
-   - `GET /api/matches`
-   - `POST /api/predictions`
-   - `GET /api/predictions?page=0&size=10`
-   - `GET /api/predictions/{id}`
-   
-
-The `requests.http` file contains working examples for the login endpoint, session check, and prediction requests.
-
-Environment variables (loaded from `.env` when present):
-- GOOGLE_CLIENT_ID
-- GOOGLE_CLIENT_SECRET
-- OPENAI_API_KEY
-- OPENAI_MODEL_ID (optional, defaults to `gpt-4o-mini`)
-
-To run locally with the REST client:
 1. Start the backend.
-2. Use the `/api/auth/login` request from `requests.http` to initiate login and capture the `JSESSIONID` cookie.
-3. Use that cookie in `Cookie: JSESSIONID=...` for `/api/auth/session`, `/api/auth/me`, `/api/matches`, and prediction requests.
+2. Open the login endpoint in a browser or REST client:
+   - `GET /api/auth/login`
+3. Complete the Google sign-in flow.
+4. Capture the `JSESSIONID` cookie from the response and reuse it for authenticated requests.
 
-Database seeding:
-- TeamStats are seeded/synced on startup.
-- Match catalog data is loaded from `src/main/resources/bootstrap/matches.json` and synced on startup.
+### Authenticated requests
 
-API endpoints (current)
------------------------
-
-Public endpoints:
-- `GET /api/health`
-- `GET /api/auth/login`
-- `POST /api/auth/test-session` (local test helper)
-
-Authenticated endpoints (require `Cookie: JSESSIONID=...`):
+Use the same cookie for:
 - `GET /api/auth/session`
 - `GET /api/auth/me`
 - `GET /api/matches`
-- `POST /api/predictions`
+- `GET /api/predictions`
 
+## API endpoints
 
-Error response contract
------------------------
+### Public endpoints
+
+- `GET /api/health`
+- `GET /api/auth/login`
+- `GET /api/auth/logout` (browser-friendly logout flow)
+- `POST /api/auth/test-session` (local test helper)
+
+### Protected endpoints
+
+All protected endpoints require a valid `Cookie: JSESSIONID=...` header.
+
+- `GET /api/auth/session`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+- `GET /api/matches`
+- `GET /api/predictions`
+
+## Data bootstrap
+
+On startup the application syncs:
+- Team statistics from the seeded data source
+- Match catalog data from [src/main/resources/bootstrap/matches.json](src/main/resources/bootstrap/matches.json)
+
+## Error response contract
 
 API errors use a strict JSON envelope:
 
 ```json
 {
-   "error": {
-      "code": "UNAUTHENTICATED",
-      "message": "Authentication required.",
-      "details": []
-   },
-   "timestamp": "2026-07-13T18:25:43Z",
-   "path": "/api/matches"
+  "error": {
+    "code": "UNAUTHENTICATED",
+    "message": "Authentication required.",
+    "details": []
+  },
+  "timestamp": "2026-07-13T18:25:43Z",
+  "path": "/api/matches"
 }
 ```
 
-Error codes currently used:
+Current error codes:
 - `UNAUTHENTICATED` (401)
 - `FORBIDDEN` (403)
 - `RATE_LIMITED` (429)
 - `INTERNAL_ERROR` (500)
 - `SERVICE_UNAVAILABLE` (503)
 
-Note: A deeper architectural analysis of the codebase is available in [ARCHITECTURAL_ANALYSIS.md](./ARCHITECTURAL_ANALYSIS.md).
+## Render deployment
+
+For production deployment, use the `prod` profile and configure the environment variables required by the app.
+
+1. Push the repository to GitHub.
+2. Create a Render web service from the GitHub repository.
+3. Create a PostgreSQL database and attach it to the service.
+4. Set these variables on the Render service:
+   - `SPRING_PROFILES_ACTIVE=prod`
+   - `FRONTEND_URL=https://<your-frontend-domain>`
+   - `GOOGLE_CLIENT_ID=...`
+   - `GOOGLE_CLIENT_SECRET=...`
+   - `OPENAI_API_KEY=...`
+   - `OPENAI_MODEL_ID=gpt-4o-mini` (optional)
+   - `SPRING_DATASOURCE_URL=...`
+   - `SPRING_DATASOURCE_USERNAME=...`
+   - `SPRING_DATASOURCE_PASSWORD=...`
+5. Register the OAuth redirect URI in Google Cloud Console, for example:
+   - `https://<your-domain>/login/oauth2/code/google`
+
+For a deeper architectural overview of the codebase, see [ARCHITECTURAL_ANALYSIS.md](ARCHITECTURAL_ANALYSIS.md).
