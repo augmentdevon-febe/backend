@@ -354,6 +354,7 @@ sequenceDiagram
     participant Controller as PredictionController
     participant Service as PredictionService
     participant Repo as PredictionRepository
+    participant PromptBuilder as PredictionPromptBuilder
     participant AI as OpenAI / LLM
     participant Parser as PredictionResponseParser
     participant DB as Base de datos
@@ -362,6 +363,8 @@ sequenceDiagram
     Controller->>Service: createPrediction(request)
     Service->>Repo: validar/consultar contexto del partido
     Repo-->>Service: datos del partido y usuario
+    Service->>PromptBuilder: build(home, away, stats, stage, venue, date)
+    PromptBuilder-->>Service: prompt estructurado listo para IA
     Service->>AI: enviar prompt con datos del partido
     AI-->>Service: respuesta cruda de la IA
     Service->>Parser: parsear respuesta
@@ -376,6 +379,7 @@ sequenceDiagram
 - Inicio del flujo: [src/main/java/com/example/worldcuppredictor/api/controller/PredictionController.java](src/main/java/com/example/worldcuppredictor/api/controller/PredictionController.java)
 - Orquestación de negocio: [src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java](src/main/java/com/example/worldcuppredictor/domain/service/PredictionService.java)
 - Acceso a datos y persistencia: [src/main/java/com/example/worldcuppredictor/domain/repository/PredictionRepository.java](src/main/java/com/example/worldcuppredictor/domain/repository/PredictionRepository.java)
+- Construcción del prompt: [src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionPromptBuilder.java](src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionPromptBuilder.java)
 - Integración con OpenAI: [src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java](src/main/java/com/example/worldcuppredictor/infrastructure/ai/OpenAiPredictionClient.java)
 - Parseo de respuesta IA: [src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionResponseParser.java](src/main/java/com/example/worldcuppredictor/infrastructure/ai/PredictionResponseParser.java)
 - Entidad persistida: [src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java](src/main/java/com/example/worldcuppredictor/domain/entity/Prediction.java)
