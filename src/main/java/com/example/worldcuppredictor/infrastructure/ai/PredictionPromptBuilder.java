@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -19,6 +20,12 @@ import java.util.Map;
 public class PredictionPromptBuilder {
     private static final String MATCHES_JSON_PATH = "bootstrap/matches.json";
     private static final String DEFAULT_TOURNAMENT_PROMPT_IDENTIFIER = "FIFA";
+    private static final String PROMPT_PREFIX = "You are an expert in ";
+    private static final String PROMPT_SUFFIX = " tournament and statistics and probabilistic football soccer analyst. Return a STRICT JSON with fields: predictedHomeGoals (int), predictedAwayGoals (int), result (HOME_WIN|AWAY_WIN|DRAW), explanation (string).\n";
+    private static final String MATCH_INFO_HEADER = "Match info:\n";
+    private static final String FEATURES_HEADER = "Features:\n";
+    private static final String JSON_ONLY_SUFFIX = "Return only JSON. Do not add commentary.";
+    private static final String UNKNOWN_TEAM = "UNKNOWN";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static volatile String cachedTournamentPromptIdentifier;
 
@@ -34,26 +41,34 @@ public class PredictionPromptBuilder {
      * @return a single string ready to send as the {@code input} field to the OpenAI Responses API
      */
     public static String build(String home, String away, Map<String, TeamStats> stats, String stage, String venue, String date) {
-        TeamStats h = stats.get(home.toLowerCase());
-        TeamStats a = stats.get(away.toLowerCase());
+        TeamStats h = stats.get(home.toLowerCase(Locale.ROOT));
+        TeamStats a = stats.get(away.toLowerCase(Locale.ROOT));
         String tournamentPromptIdentifier = resolveTournamentPromptIdentifier();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("You are an expert in ").append(tournamentPromptIdentifier).append(" tournament and statistics and probabilistic football analyst. Return a STRICT JSON with fields: predictedHomeGoals (int), predictedAwayGoals (int), result (HOME_WIN|AWAY_WIN|DRAW), explanation (string).\n");
-        sb.append("Match info:\n");
+        sb.append(PROMPT_PREFIX)
+                .append(tournamentPromptIdentifier)
+                .append(PROMPT_SUFFIX);
+        sb.append(MATCH_INFO_HEADER);
         sb.append("home: ").append(home).append("\n");
         sb.append("away: ").append(away).append("\n");
-        if (stage != null) sb.append("stage: ").append(stage).append("\n");
-        if (venue != null) sb.append("venue: ").append(venue).append("\n");
-        if (date != null) sb.append("date: ").append(date).append("\n");
+        appendOptionalField(sb, "stage", stage);
+        appendOptionalField(sb, "venue", venue);
+        appendOptionalField(sb, "date", date);
 
-        sb.append("Features:\n");
-        sb.append("home: ").append(h == null ? "UNKNOWN" : h.toString()).append("\n");
-        sb.append("away: ").append(a == null ? "UNKNOWN" : a.toString()).append("\n");
+        sb.append(FEATURES_HEADER);
+        sb.append("home: ").append(h == null ? UNKNOWN_TEAM : h.toString()).append("\n");
+        sb.append("away: ").append(a == null ? UNKNOWN_TEAM : a.toString()).append("\n");
 
-        sb.append("Return only JSON. Do not add commentary.");
+        sb.append(JSON_ONLY_SUFFIX);
 
         return sb.toString();
+    }
+
+    private static void appendOptionalField(StringBuilder sb, String label, String value) {
+        if (value != null) {
+            sb.append(label).append(": ").append(value).append("\n");
+        }
     }
 
     private static String resolveTournamentPromptIdentifier() {

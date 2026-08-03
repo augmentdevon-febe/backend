@@ -3,194 +3,193 @@
   "tournament_name_identifier_in_prompt": "Liga MX Invierno 2026",
   "matches": [
     {
-      "homeTeam": "Necaxa",
-      "awayTeam": "Atlante",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Victoria",
-      "matchDate": "2026-07-16T19:00:00-06:00"
-    },
-    {
-      "homeTeam": "Tijuana",
-      "awayTeam": "Tigres UANL",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Caliente",
-      "matchDate": "2026-07-16T21:00:00-06:00"
-    },
-    {
-      "homeTeam": "Atlético San Luis",
-      "awayTeam": "Cruz Azul",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Alfonso Lastras",
-      "matchDate": "2026-07-17T19:00:00-06:00"
-    },
-    {
-      "homeTeam": "León",
-      "awayTeam": "Atlas",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio León",
-      "matchDate": "2026-07-17T19:00:00-06:00"
-    },
-    {
-      "homeTeam": "FC Juárez",
-      "awayTeam": "Puebla",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Olímpico Benito Juárez",
-      "matchDate": "2026-07-17T21:00:00-06:00"
-    },
-    {
-      "homeTeam": "Pumas UNAM",
-      "awayTeam": "Pachuca",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Olímpico Universitario",
-      "matchDate": "2026-07-18T17:00:00-06:00"
+      "homeTeam": "Atlante",
+      "awayTeam": "Toluca",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Agustín Coruco Díaz",
+      "matchDate": "2026-08-15T19:00:00-06:00"
     },
     {
       "homeTeam": "Monterrey",
-      "awayTeam": "Santos Laguna",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio BBVA",
-      "matchDate": "2026-07-18T19:05:00-06:00"
-    },
-    {
-      "homeTeam": "Chivas",
-      "awayTeam": "Toluca",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Akron",
-      "matchDate": "2026-07-18T19:07:00-06:00"
-    },
-    {
-      "homeTeam": "Querétaro",
-      "awayTeam": "América",
-      "matchStage": "Jornada 1",
-      "venue": "Estadio Corregidora",
-      "matchDate": "2026-07-18T21:10:00-06:00"
-    },
-
-    {
-      "homeTeam": "Cruz Azul",
-      "awayTeam": "Puebla",
-      "matchStage": "Jornada 2",
-      "venue": "Mexico City Stadium",
-      "matchDate": "2026-07-22T20:00:00-06:00"
-    },
-    {
-      "homeTeam": "Toluca",
-      "awayTeam": "Pumas UNAM",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Nemesio Diez",
-      "matchDate": "2026-07-22T22:05:00-06:00"
-    },
-    {
-      "homeTeam": "Atlante",
-      "awayTeam": "América",
-      "matchStage": "Jornada 2",
-      "venue": "Mexico City Stadium",
-      "matchDate": "2026-07-25T22:00:00-06:00"
-    },
-    {
-      "homeTeam": "Tijuana",
-      "awayTeam": "León",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Caliente",
-      "matchDate": "2026-07-25T22:00:00-06:00"
-    },
-    {
-      "homeTeam": "Chivas",
       "awayTeam": "FC Juárez",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Akron",
-      "matchDate": "2026-07-26T18:07:00-06:00"
-    },
-    {
-      "homeTeam": "Tigres UANL",
-      "awayTeam": "Atlético San Luis",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Universitario",
-      "matchDate": "2026-07-26T22:00:00-06:00"
-    },
-    {
-      "homeTeam": "Santos Laguna",
-      "awayTeam": "Atlas",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Corona",
-      "matchDate": "2026-07-26T22:00:00-06:00"
-    },
-    {
-      "homeTeam": "Necaxa",
-      "awayTeam": "Monterrey",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Victoria",
-      "matchDate": "2026-07-27T18:00:00-06:00"
-    },
-    {
-      "homeTeam": "Pachuca",
-      "awayTeam": "Querétaro",
-      "matchStage": "Jornada 2",
-      "venue": "Estadio Hidalgo",
-      "matchDate": "2026-07-27T20:00:00-06:00"
-    },
-    {
-      "homeTeam": "Puebla",
-      "awayTeam": "Chivas",
-      "matchStage": "Jornada 3",
-      "venue": "Estadio Cuauhtémoc",
-      "matchDate": "2026-07-31T00:00:00-06:00"
-    },
-    {
-      "homeTeam": "Atlético San Luis",
-      "awayTeam": "Tijuana",
-      "matchStage": "Jornada 3",
-      "venue": "Estadio Alfonso Lastras",
-      "matchDate": "2026-07-31T00:00:00-06:00"
-    },
-    {
-      "homeTeam": "FC Juárez",
-      "awayTeam": "Pumas UNAM",
-      "matchStage": "Jornada 3",
-      "venue": "Estadio Olímpico Benito Juárez",
-      "matchDate": "2026-07-31T00:00:00-06:00"
-    },
-    {
-      "homeTeam": "Querétaro",
-      "awayTeam": "Tigres UANL",
-      "matchStage": "Jornada 3",
-      "venue": "Estadio Corregidora",
-      "matchDate": "2026-08-01T00:00:00-06:00"
-    },
-    {
-      "homeTeam": "León",
-      "awayTeam": "Pachuca",
-      "matchStage": "Jornada 3",
-      "venue": "Estadio León",
-      "matchDate": "2026-08-01T00:00:00-06:00"
+      "matchStage": "Jornada 4",
+      "venue": "Estadio BBVA",
+      "matchDate": "2026-08-15T19:00:00-06:00"
     },
     {
       "homeTeam": "Atlas",
-      "awayTeam": "Monterrey",
-      "matchStage": "Jornada 3",
+      "awayTeam": "Tigres UANL",
+      "matchStage": "Jornada 4",
       "venue": "Estadio Jalisco",
-      "matchDate": "2026-08-01T00:00:00-06:00"
+      "matchDate": "2026-08-15T21:00:00-06:00"
     },
     {
-      "homeTeam": "Cruz Azul",
-      "awayTeam": "Atlante",
-      "matchStage": "Jornada 3",
-      "venue": "Mexico City Stadium",
-      "matchDate": "2026-08-01T00:00:00-06:00"
+      "homeTeam": "Pumas UNAM",
+      "awayTeam": "Querétaro",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Olímpico Universitario",
+      "matchDate": "2026-08-16T17:00:00-06:00"
     },
     {
       "homeTeam": "América",
+      "awayTeam": "Atlético San Luis",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Ciudad de los Deportes",
+      "matchDate": "2026-08-16T18:00:00-06:00"
+    },
+    {
+      "homeTeam": "Santos Laguna",
+      "awayTeam": "Chivas",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Corona",
+      "matchDate": "2026-08-16T16:00:00-06:00"
+    },
+    {
+      "homeTeam": "Tijuana",
+      "awayTeam": "Cruz Azul",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Caliente",
+      "matchDate": "2026-08-16T20:00:00-06:00"
+    },
+    {
+      "homeTeam": "Necaxa",
+      "awayTeam": "León",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Victoria",
+      "matchDate": "2026-08-17T19:00:00-06:00"
+    },
+    {
+      "homeTeam": "Pachuca",
+      "awayTeam": "Puebla",
+      "matchStage": "Jornada 4",
+      "venue": "Estadio Hidalgo",
+      "matchDate": "2026-08-17T19:00:00-06:00"
+    },
+    {
+      "homeTeam": "Puebla",
       "awayTeam": "Santos Laguna",
-      "matchStage": "Jornada 3",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Cuauhtémoc",
+      "matchDate": "2026-08-21T20:00:00-06:00"
+    },
+    {
+      "homeTeam": "FC Juárez",
+      "awayTeam": "América",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Olímpico Benito Juárez",
+      "matchDate": "2026-08-21T21:00:00-06:00"
+    },
+    {
+      "homeTeam": "Querétaro",
+      "awayTeam": "Toluca",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Corregidora",
+      "matchDate": "2026-08-22T17:00:00-06:00"
+    },
+    {
+      "homeTeam": "Chivas",
+      "awayTeam": "Tijuana",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Akron",
+      "matchDate": "2026-08-22T16:00:00-06:00"
+    },
+    {
+      "homeTeam": "León",
+      "awayTeam": "Monterrey",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio León",
+      "matchDate": "2026-08-22T19:00:00-06:00"
+    },
+    {
+      "homeTeam": "Tigres UANL",
+      "awayTeam": "Atlante",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Universitario",
+      "matchDate": "2026-08-22T20:00:00-06:00"
+    },
+    {
+      "homeTeam": "Cruz Azul",
+      "awayTeam": "Atlas",
+      "matchStage": "Jornada 5",
       "venue": "Estadio Banorte",
-      "matchDate": "2026-08-02T00:00:00-06:00"
+      "matchDate": "2026-08-22T20:00:00-06:00"
+    },
+    {
+      "homeTeam": "Atlético San Luis",
+      "awayTeam": "Pachuca",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Alfonso Lastras",
+      "matchDate": "2026-08-23T17:00:00-06:00"
+    },
+    {
+      "homeTeam": "Pumas UNAM",
+      "awayTeam": "Necaxa",
+      "matchStage": "Jornada 5",
+      "venue": "Estadio Olímpico Universitario",
+      "matchDate": "2026-08-23T17:00:00-06:00"
+    },
+    {
+      "homeTeam": "Necaxa",
+      "awayTeam": "Cruz Azul",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Victoria",
+      "matchDate": "2026-08-28T17:00:00-06:00"
+    },
+    {
+      "homeTeam": "Atlante",
+      "awayTeam": "León",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Agustín Coruco Díaz",
+      "matchDate": "2026-08-28T19:00:00-06:00"
+    },
+    {
+      "homeTeam": "Tijuana",
+      "awayTeam": "Pumas UNAM",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Caliente",
+      "matchDate": "2026-08-28T20:00:00-06:00"
+    },
+    {
+      "homeTeam": "Atlas",
+      "awayTeam": "Querétaro",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Jalisco",
+      "matchDate": "2026-08-29T19:00:00-06:00"
+    },
+    {
+      "homeTeam": "Pachuca",
+      "awayTeam": "Chivas",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Hidalgo",
+      "matchDate": "2026-08-29T17:00:00-06:00"
+    },
+    {
+      "homeTeam": "América",
+      "awayTeam": "Puebla",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Ciudad de los Deportes",
+      "matchDate": "2026-08-29T18:00:00-06:00"
+    },
+    {
+      "homeTeam": "Santos Laguna",
+      "awayTeam": "Tigres UANL",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio Corona",
+      "matchDate": "2026-08-29T16:00:00-06:00"
     },
     {
       "homeTeam": "Toluca",
-      "awayTeam": "Necaxa",
-      "matchStage": "Jornada 3",
+      "awayTeam": "FC Juárez",
+      "matchStage": "Jornada 6",
       "venue": "Estadio Nemesio Diez",
-      "matchDate": "2026-08-02T00:00:00-06:00"
+      "matchDate": "2026-08-30T18:00:00-06:00"
+    },
+    {
+      "homeTeam": "Monterrey",
+      "awayTeam": "Atlético San Luis",
+      "matchStage": "Jornada 6",
+      "venue": "Estadio BBVA",
+      "matchDate": "2026-08-30T18:00:00-06:00"
     }
   ]
 }
