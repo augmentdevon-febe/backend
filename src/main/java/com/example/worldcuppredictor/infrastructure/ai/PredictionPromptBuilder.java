@@ -46,9 +46,9 @@ public class PredictionPromptBuilder {
         String tournamentPromptIdentifier = resolveTournamentPromptIdentifier();
 
         StringBuilder sb = new StringBuilder();
-        sb.append(PROMPT_PREFIX)
-                .append(tournamentPromptIdentifier)
-                .append(PROMPT_SUFFIX);
+        sb.append(PROMPT_PREFIX);
+        sb.append(tournamentPromptIdentifier);
+        sb.append(PROMPT_SUFFIX);
         sb.append(MATCH_INFO_HEADER);
         sb.append("home: ").append(home).append("\n");
         sb.append("away: ").append(away).append("\n");
