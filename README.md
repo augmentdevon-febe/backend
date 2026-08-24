@@ -133,6 +133,7 @@ For production deployment, use the `prod` profile and configure the environment 
 
 For a deeper architectural overview of the codebase, see [ARCHITECTURAL_ANALYSIS.md](ARCHITECTURAL_ANALYSIS.md).
 
-CALIFICACIONES
-Calificacion dada por Saul Jiménez: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
-Calificacion dada por David Uziel Lorenzo: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
+## CALIFICACIONES
+
+1. Calificacion dada por Saul Jiménez: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
+2. Calificacion dada por David Uziel Lorenzo: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
