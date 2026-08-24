@@ -132,3 +132,7 @@ For production deployment, use the `prod` profile and configure the environment 
    - `https://<your-domain>/login/oauth2/code/google`
 
 For a deeper architectural overview of the codebase, see [ARCHITECTURAL_ANALYSIS.md](ARCHITECTURAL_ANALYSIS.md).
+
+CALIFICACIONES
+Calificacion dada por Saul Jiménez: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
+Calificacion dada por David Uziel Lorenzo: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
