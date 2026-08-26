@@ -137,3 +137,4 @@ For a deeper architectural overview of the codebase, see [ARCHITECTURAL_ANALYSIS
 
 1. Calificacion dada por Saul Jiménez: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
 2. Calificacion dada por David Uziel Lorenzo: 5/5 - Sobresaliente: El desempeño es excepcional y demuestra excelencia.
+3. Calificacion dada por Adalberto Garcia: 5/5 - Sobresaliente. La aplicación se ve bastante bien, explicó de manera clara la arquitectura y el uso de la IA dentro de la misma.
